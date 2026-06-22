@@ -8,13 +8,16 @@ Người dùng (HTTPS)
    │         │ gọi API
    │         ▼
    └─►  Cloudflare Tunnel  →  meup-api (.NET) ──► PostgreSQL + Redis
-            (HTTPS, free)       trên Oracle Always Free VM (docker-compose)
+            (HTTPS, free)       trên Google Cloud Always Free VM (docker-compose)
 ```
 
 - **Frontend**: Cloudflare Pages (miễn phí, CDN toàn cầu).
-- **Backend**: Oracle Cloud Always Free VM chạy `docker-compose.prod.yml`
+- **Backend**: Google Cloud Always Free **e2-micro** VM chạy `docker-compose.prod.yml`
   (API + PostgreSQL + Redis + `cloudflared`).
-- **HTTPS cho API**: Cloudflare Tunnel — không cần mở cổng, né hẳn firewall của Oracle.
+- **HTTPS cho API**: Cloudflare Tunnel — chỉ kết nối ra ngoài (outbound), không cần mở cổng vào.
+
+> `docker-compose.prod.yml` + Dockerfile chạy trên **bất kỳ Linux VM nào**, nên nếu sau này
+> đổi sang nhà cung cấp khác (Oracle, VPS trả phí…) thì chỉ thay bước "tạo máy" bên dưới.
 
 > Vì sao không để tất cả trên Cloudflare? CF chỉ chạy site tĩnh + Workers (JS/Wasm),
 > **không chạy được server .NET, PostgreSQL hay Redis**. Nên backend phải ở VM riêng.
@@ -23,25 +26,33 @@ Người dùng (HTTPS)
 
 ## 0. Điều kiện cần (chuẩn bị trước)
 
-- [ ] Tài khoản **Oracle Cloud** (Always Free — cần thẻ tín dụng để xác minh, không trừ tiền).
+- [ ] Tài khoản **Google Cloud** (cần thẻ để xác minh; Always Free không trừ tiền — nhớ **không** nâng cấp/bật billing tính phí ngoài hạn mức).
 - [ ] Tài khoản **Cloudflare** + **một domain** đã đưa vào Cloudflare (cần để gắn hostname cho Tunnel,
       vd `api.yourdomain.com`). Chưa có domain thì mua một cái rẻ rồi trỏ nameserver về Cloudflare.
 - [ ] Repo đã ở GitHub: `https://github.com/hieuhs3/Meup.git`.
 
 ---
 
-## 1. Tạo VM trên Oracle Always Free
+## 1. Tạo VM trên Google Cloud Always Free
 
-1. OCI Console → **Compute → Instances → Create instance**.
-2. **Image & shape**: Ubuntu 22.04 (hoặc 24.04); Shape = **Ampere (VM.Standard.A1.Flex)**,
-   chọn ~**2 OCPU / 12GB RAM** (vẫn trong hạn mức Always Free 4 OCPU/24GB).
-   - Nếu báo hết slot ARM, đổi **Availability Domain**/region rồi thử lại.
-3. Thêm **SSH public key** của bạn để đăng nhập.
-4. Tạo xong, ghi lại **Public IP**.
+Hạn mức Always Free: **1 máy `e2-micro`/tháng** chỉ ở **us-west1, us-central1, hoặc us-east1**,
+kèm 30GB đĩa standard. Máy là x86_64 (không phải ARM).
 
-SSH vào máy:
+1. [console.cloud.google.com](https://console.cloud.google.com) → tạo **Project** → bật **Compute Engine API**.
+2. **Compute Engine → VM instances → Create instance**:
+   - **Region**: `us-central1` (hoặc us-west1/us-east1) — **bắt buộc** để được Always Free.
+   - **Machine type**: series **E2** → **`e2-micro`** (2 vCPU chia sẻ, 1GB RAM).
+   - **Boot disk**: Ubuntu 22.04/24.04 LTS, **30GB Standard persistent disk** (đừng vượt 30GB).
+   - **Firewall**: KHÔNG cần tick "Allow HTTP/HTTPS" — Cloudflare Tunnel đi outbound.
+3. Tạo xong → bấm **SSH** ngay trên console (hoặc dùng `gcloud compute ssh`).
+
+### Thêm swap (QUAN TRỌNG với e2-micro 1GB RAM)
+Postgres + Redis + .NET + cloudflared trên 1GB RAM rất sát; thêm 2GB swap để khỏi bị OOM:
 ```bash
-ssh ubuntu@<PUBLIC_IP>
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile
+sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+free -h   # kiểm tra đã có swap
 ```
 
 ### Cài Docker + Compose plugin
@@ -55,8 +66,11 @@ sudo usermod -aG docker $USER && newgrp docker   # chạy docker không cần su
 docker --version && docker compose version
 ```
 
-> Không cần mở cổng nào trên Oracle Security List — Cloudflare Tunnel đi ra ngoài (outbound),
-> nên firewall mặc định của Oracle vẫn để nguyên.
+> **Mẹo build trên 1GB RAM**: lệnh `docker compose ... up --build` có thể nặng. Nếu build API
+> bị treo/OOM, build sẵn ở máy khác rồi push image, hoặc tạm dừng redis/db khi build.
+> Có swap (ở trên) thường là đủ.
+
+> Không cần mở cổng vào trên GCP firewall — Cloudflare Tunnel chỉ kết nối ra ngoài.
 
 ---
 
@@ -161,7 +175,8 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod restart api
 | FE gọi API bị **CORS** chặn | `FRONTEND_ORIGIN` trong `.env.prod` chưa khớp URL Pages → sửa rồi `up -d` lại API. |
 | FE gọi API **mixed content** (http) | `apiOrigin` trong `environment.prod.ts` phải là **https** (qua tunnel). |
 | `curl api...` không phản hồi | Kiểm tra `docker compose logs cloudflared`; xác nhận Public Hostname trỏ `api:8080`. |
-| Hết slot máy ARM ở Oracle | Đổi Availability Domain/region, thử lại sau. |
+| VM bị **OOM** / container bị kill | e2-micro chỉ 1GB — đảm bảo đã bật swap (mục 1); `docker stats` xem RAM. |
+| Không tạo được e2-micro free | Phải chọn region **us-west1/us-central1/us-east1** và đúng `e2-micro`. |
 | Avatar mất sau redeploy | Đã mount volume `meup-uploads`; đừng `docker compose down -v` (xóa volume). |
 
 > Lưu ý: free tier không có SLA — hợp demo/cá nhân. Chạy nghiêm túc nên cân nhắc nâng cấp trả phí.

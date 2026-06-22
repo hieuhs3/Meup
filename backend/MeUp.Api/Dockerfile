@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1
 # Build đa kiến trúc: chạy trên máy nào sẽ ra image cho kiến trúc đó
-# (Oracle Ampere = arm64). Multi-stage để image cuối nhỏ gọn.
+# (GCP e2-micro = amd64; Oracle Ampere = arm64 — image MS hỗ trợ cả hai).
+# Multi-stage để image cuối nhỏ gọn.
 
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
