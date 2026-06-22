@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { EventService } from '../../core/services/event.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { CalendarEvent } from '../../core/models/event.models';
 
 @Component({
@@ -25,6 +26,7 @@ import { CalendarEvent } from '../../core/models/event.models';
 export class Calendar implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly events = inject(EventService);
+  private readonly confirm = inject(ConfirmService);
 
   readonly date = signal(this.todayIso());
   readonly list = signal<CalendarEvent[]>([]);
@@ -110,8 +112,8 @@ export class Calendar implements OnInit {
     });
   }
 
-  remove(e: CalendarEvent): void {
-    if (!confirm('Xóa sự kiện này?')) return;
+  async remove(e: CalendarEvent): Promise<void> {
+    if (!(await this.confirm.ask('Xóa sự kiện này?'))) return;
     this.events.delete(e.id).subscribe({ next: () => this.load() });
   }
 

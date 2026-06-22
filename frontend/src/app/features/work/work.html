@@ -42,7 +42,7 @@
       <button class="icon-btn" (click)="deleteTask(t)" title="Xóa">✕</button>
     </div>
   } @empty {
-    <p class="muted">Không có công việc.</p>
+    <p class="muted">Chưa có công việc nào. Thêm việc đầu tiên ở ô phía trên ↑</p>
   }
 </section>
 
@@ -69,7 +69,7 @@
              (change)="saveProgress(g, $any($event.target).value)" style="width:100%" />
     </div>
   } @empty {
-    <p class="muted">Chưa có mục tiêu nào.</p>
+    <p class="muted">Chưa có mục tiêu nào. Đặt mục tiêu và theo dõi tiến độ ở trên ↑</p>
   }
 </section>
 
@@ -91,6 +91,6 @@
       <button class="icon-btn" (click)="deleteHabit(h)" title="Xóa">✕</button>
     </div>
   } @empty {
-    <p class="muted">Chưa có thói quen nào.</p>
+    <p class="muted">Chưa có thói quen nào. Thêm thói quen để bắt đầu xây chuỗi ngày 🔥</p>
   }
 </section>

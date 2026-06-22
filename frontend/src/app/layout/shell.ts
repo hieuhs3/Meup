@@ -3,10 +3,11 @@ import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/rou
 import { API_ORIGIN } from '../core/api.config';
 import { AuthService } from '../core/services/auth.service';
 import { NotificationService } from '../core/services/notification.service';
+import { ConfirmDialog } from '../core/components/confirm-dialog';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmDialog],
   template: `
     <div class="shell">
       <aside class="sidebar">
@@ -49,6 +50,7 @@ import { NotificationService } from '../core/services/notification.service';
         <router-outlet />
       </main>
     </div>
+    <app-confirm-dialog />
   `,
   styles: [`
     .who { display: flex; align-items: center; gap: .5rem; }

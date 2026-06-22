@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HealthService } from '../../core/services/health.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { HealthLog, HealthSummary, Medication } from '../../core/models/health.models';
 
 interface MetricDelta {
@@ -38,6 +39,7 @@ interface MetricDelta {
 export class Health implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly health = inject(HealthService);
+  private readonly confirm = inject(ConfirmService);
 
   readonly date = signal(this.todayIso());
   readonly summary = signal<HealthSummary | null>(null);
@@ -118,8 +120,8 @@ export class Health implements OnInit {
     });
   }
 
-  deleteMed(m: Medication): void {
-    if (!confirm(`Xóa thuốc "${m.name}"?`)) return;
+  async deleteMed(m: Medication): Promise<void> {
+    if (!(await this.confirm.ask(`Xóa thuốc "${m.name}"?`))) return;
     this.health.deleteMedication(m.id).subscribe({ next: () => this.loadMeds() });
   }
 
@@ -178,8 +180,8 @@ export class Health implements OnInit {
       });
   }
 
-  remove(): void {
-    if (!confirm('Xóa nhật ký ngày này?')) return;
+  async remove(): Promise<void> {
+    if (!(await this.confirm.ask('Xóa nhật ký ngày này?'))) return;
     this.health.deleteLog(this.date()).subscribe({
       next: () => {
         this.msg.set('Đã xóa nhật ký.');

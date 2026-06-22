@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FinanceService } from '../../core/services/finance.service';
 import { AiService } from '../../core/services/ai.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import {
   Budget,
   Category,
@@ -41,6 +42,7 @@ export class Finance implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly finance = inject(FinanceService);
   private readonly ai = inject(AiService);
+  private readonly confirm = inject(ConfirmService);
   readonly suggesting = signal(false);
 
   readonly summary = signal<Summary | null>(null);
@@ -138,8 +140,8 @@ export class Finance implements OnInit {
     });
   }
 
-  deleteBudget(b: Budget): void {
-    if (!confirm(`Xóa ngân sách "${b.categoryName}"?`)) return;
+  async deleteBudget(b: Budget): Promise<void> {
+    if (!(await this.confirm.ask(`Xóa ngân sách "${b.categoryName}"?`))) return;
     this.finance.deleteBudget(b.id).subscribe({ next: () => this.loadBudgets() });
   }
 
@@ -218,8 +220,8 @@ export class Finance implements OnInit {
     this.txMsg.set(null);
   }
 
-  deleteTransaction(t: Transaction): void {
-    if (!confirm('Xóa giao dịch này?')) return;
+  async deleteTransaction(t: Transaction): Promise<void> {
+    if (!(await this.confirm.ask('Xóa giao dịch này?'))) return;
     this.finance.deleteTransaction(t.id).subscribe({
       next: () => this.refreshAfterChange(),
       error: (err) => this.error.set(err?.error?.error ?? 'Xóa thất bại.'),
@@ -311,8 +313,8 @@ export class Finance implements OnInit {
     });
   }
 
-  deleteCategory(c: Category): void {
-    if (!confirm(`Xóa danh mục "${c.name}"? Giao dịch liên quan sẽ được gỡ liên kết.`)) return;
+  async deleteCategory(c: Category): Promise<void> {
+    if (!(await this.confirm.ask(`Xóa danh mục "${c.name}"? Giao dịch liên quan sẽ được gỡ liên kết.`))) return;
     this.finance.deleteCategory(c.id).subscribe({
       next: () => {
         this.loadCategories();

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { API_BASE } from '../../core/api.config';
 import { ThemeService } from '../../core/services/theme.service';
 import { AiService, AiStatus } from '../../core/services/ai.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 
 @Component({
   selector: 'app-settings',
@@ -70,6 +71,7 @@ import { AiService, AiStatus } from '../../core/services/ai.service';
 export class Settings implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly ai = inject(AiService);
+  private readonly confirm = inject(ConfirmService);
   readonly theme = inject(ThemeService);
 
   readonly busy = signal(false);
@@ -107,8 +109,8 @@ export class Settings implements OnInit {
     });
   }
 
-  clearKey(): void {
-    if (!confirm('Xóa API key của bạn? Tính năng AI sẽ tắt (trừ khi hệ thống có key chung).')) return;
+  async clearKey(): Promise<void> {
+    if (!(await this.confirm.ask('Xóa API key của bạn? Tính năng AI sẽ tắt (trừ khi hệ thống có key chung).'))) return;
     this.aiBusy.set(true);
     this.aiMsg.set(null);
     this.ai.clearKey().subscribe({

@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { JournalService } from '../../core/services/journal.service';
 import { JournalEntry } from '../../core/models/journal.models';
 import { NoteService } from '../../core/services/note.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { Note } from '../../core/models/note.models';
 import { FormsModule } from '@angular/forms';
 import { RichEditor } from '../../core/components/rich-editor';
@@ -31,6 +32,7 @@ export class Journal implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly journal = inject(JournalService);
   private readonly noteSvc = inject(NoteService);
+  private readonly confirm = inject(ConfirmService);
 
   readonly entries = signal<JournalEntry[]>([]);
   readonly editingId = signal<string | null>(null); // null = không mở; '' = bài mới
@@ -79,8 +81,8 @@ export class Journal implements OnInit {
     });
   }
 
-  deleteNote(n: Note): void {
-    if (!confirm('Xóa ghi chú này?')) return;
+  async deleteNote(n: Note): Promise<void> {
+    if (!(await this.confirm.ask('Xóa ghi chú này?'))) return;
     this.noteSvc.delete(n.id).subscribe({ next: () => this.loadNotes() });
   }
 
@@ -125,8 +127,8 @@ export class Journal implements OnInit {
     });
   }
 
-  remove(e: JournalEntry): void {
-    if (!confirm('Xóa bài nhật ký này?')) return;
+  async remove(e: JournalEntry): Promise<void> {
+    if (!(await this.confirm.ask('Xóa bài nhật ký này?'))) return;
     this.journal.delete(e.id).subscribe({
       next: () => this.load(),
       error: () => this.error.set('Xóa thất bại.'),

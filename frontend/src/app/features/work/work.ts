@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { WorkService } from '../../core/services/work.service';
+import { ConfirmService } from '../../core/services/confirm.service';
 import { Goal, Habit, Recurrence, TaskItem, TaskStatus } from '../../core/models/work.models';
 
 @Component({
@@ -34,6 +35,7 @@ import { Goal, Habit, Recurrence, TaskItem, TaskStatus } from '../../core/models
 export class Work implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly work = inject(WorkService);
+  private readonly confirm = inject(ConfirmService);
 
   readonly tasks = signal<TaskItem[]>([]);
   readonly goals = signal<Goal[]>([]);
@@ -94,8 +96,8 @@ export class Work implements OnInit {
     this.work.toggleTask(t.id).subscribe({ next: () => this.loadTasks() });
   }
 
-  deleteTask(t: TaskItem): void {
-    if (!confirm('Xóa công việc này?')) return;
+  async deleteTask(t: TaskItem): Promise<void> {
+    if (!(await this.confirm.ask('Xóa công việc này?'))) return;
     this.work.deleteTask(t.id).subscribe({ next: () => this.loadTasks() });
   }
 
@@ -124,8 +126,8 @@ export class Work implements OnInit {
     });
   }
 
-  deleteGoal(g: Goal): void {
-    if (!confirm(`Xóa mục tiêu "${g.name}"?`)) return;
+  async deleteGoal(g: Goal): Promise<void> {
+    if (!(await this.confirm.ask(`Xóa mục tiêu "${g.name}"?`))) return;
     this.work.deleteGoal(g.id).subscribe({ next: () => this.loadGoals() });
   }
 
@@ -152,8 +154,8 @@ export class Work implements OnInit {
     });
   }
 
-  deleteHabit(h: Habit): void {
-    if (!confirm(`Xóa thói quen "${h.name}"?`)) return;
+  async deleteHabit(h: Habit): Promise<void> {
+    if (!(await this.confirm.ask(`Xóa thói quen "${h.name}"?`))) return;
     this.work.deleteHabit(h.id).subscribe({ next: () => this.loadHabits() });
   }
 
