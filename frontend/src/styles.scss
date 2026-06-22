@@ -1,0 +1,142 @@
+/* MeUp — global styles */
+:root {
+  --bg: #f4f6fb;
+  --surface: #ffffff;
+  --border: #e3e8f0;
+  --text: #1f2733;
+  --muted: #76808f;
+  --primary: #4361ee;
+  --primary-dark: #3149c4;
+  --danger: #e23b50;
+  --success: #1f9d55;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0f141b;
+  --surface: #1a212b;
+  --border: #2b333f;
+  --text: #e6eaf0;
+  --muted: #9aa5b3;
+  --primary: #5b7cfa;
+  --primary-dark: #4a68e0;
+  --danger: #ef5a6e;
+  --success: #34c46f;
+}
+/* Trong dark mode, làm các nền sáng cố định dịu lại */
+:root[data-theme='dark'] input,
+:root[data-theme='dark'] select,
+:root[data-theme='dark'] textarea { background: #131a22; color: var(--text); }
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+h1 { font-size: 1.6rem; margin: 0 0 .25rem; }
+h3 { margin: 0 0 .75rem; }
+.muted { color: var(--muted); font-size: .9rem; }
+.error { color: var(--danger); font-size: .9rem; }
+.success { color: var(--success); font-size: .9rem; }
+
+button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: .6rem 1rem;
+  font-size: .95rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+button:hover:not(:disabled) { background: var(--primary-dark); }
+button:disabled { opacity: .55; cursor: not-allowed; }
+button.ghost {
+  background: transparent;
+  color: var(--primary);
+  border: 1px solid var(--border);
+}
+button.ghost:hover:not(:disabled) { background: #eef1fb; }
+
+label {
+  display: block;
+  margin-bottom: .9rem;
+  font-size: .9rem;
+  color: var(--muted);
+}
+input {
+  display: block;
+  width: 100%;
+  margin-top: .35rem;
+  padding: .6rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 1rem;
+  background: #fff;
+  color: var(--text);
+}
+input:focus { outline: 2px solid var(--primary); border-color: transparent; }
+
+/* Auth pages */
+.auth-card {
+  max-width: 380px;
+  margin: 8vh auto;
+  background: var(--surface);
+  padding: 2rem;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 30px rgba(31, 39, 51, .06);
+}
+.auth-card button[type='submit'] { width: 100%; margin-top: .25rem; }
+
+/* App shell */
+.shell { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 240px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem 1rem;
+}
+.brand { font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-bottom: 1.5rem; }
+.sidebar nav { display: flex; flex-direction: column; gap: .25rem; flex: 1; }
+.sidebar nav a {
+  text-decoration: none;
+  color: var(--text);
+  padding: .6rem .75rem;
+  border-radius: 8px;
+  font-size: .95rem;
+}
+.sidebar nav a:hover { background: #eef1fb; }
+.sidebar nav a.active { background: var(--primary); color: #fff; }
+.sidebar-footer { border-top: 1px solid var(--border); padding-top: 1rem; }
+.sidebar-footer .who { display: flex; flex-direction: column; margin-bottom: .75rem; }
+.sidebar-footer .who .muted { font-size: .8rem; }
+.sidebar-footer button { width: 100%; }
+
+.content { flex: 1; padding: 2rem 2.5rem; overflow: auto; }
+.page-head { margin-bottom: 1.5rem; }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.card button[type='submit'] { margin-top: .25rem; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; }
+.card.empty { text-align: center; color: var(--muted); }
+
+/* Table */
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { text-align: left; padding: .7rem .5rem; border-bottom: 1px solid var(--border); font-size: .92rem; }
+.table th { color: var(--muted); font-weight: 600; }
+.badge { padding: .2rem .6rem; border-radius: 999px; font-size: .78rem; }
+.badge.active { background: #e4f6ec; color: var(--success); }
+.badge.locked { background: #fde7ea; color: var(--danger); }

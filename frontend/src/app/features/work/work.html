@@ -1,0 +1,96 @@
+<header class="page-head">
+  <h1>Công việc</h1>
+  <p class="muted">Việc cần làm, mục tiêu và thói quen.</p>
+</header>
+
+@if (error()) { <p class="error">{{ error() }}</p> }
+
+<!-- Việc cần làm -->
+<section class="card">
+  <h3>Việc cần làm</h3>
+  <form class="inline-form" [formGroup]="taskForm" (ngSubmit)="addTask()">
+    <label class="grow">Tiêu đề <input type="text" formControlName="title" maxlength="200" /></label>
+    <label>Hạn <input type="date" formControlName="dueDate" /></label>
+    <label>Lặp lại
+      <select formControlName="recurrence">
+        <option value="none">Không</option>
+        <option value="daily">Hằng ngày</option>
+        <option value="weekly">Hằng tuần</option>
+        <option value="monthly">Hằng tháng</option>
+      </select>
+    </label>
+    <button type="submit" [disabled]="taskForm.invalid">Thêm</button>
+  </form>
+
+  <div class="tabs">
+    <button [class.active]="status() === 'all'" (click)="setStatus('all')">Tất cả</button>
+    <button [class.active]="status() === 'active'" (click)="setStatus('active')">Chưa xong</button>
+    <button [class.active]="status() === 'done'" (click)="setStatus('done')">Đã xong</button>
+  </div>
+
+  @for (t of tasks(); track t.id) {
+    <div class="item">
+      <input type="checkbox" [checked]="t.isDone" (change)="toggleTask(t)" style="width:auto" />
+      <span class="title" [class.done]="t.isDone">{{ t.title }}
+        @if (t.recurrence !== 'none') { <small class="muted">{{ recurrenceLabels[t.recurrence] }}</small> }
+      </span>
+      @if (t.dueDate) {
+        <span class="due" [class.overdue]="t.isOverdue">
+          {{ t.isOverdue ? '⚠ quá hạn ' : 'hạn ' }}{{ t.dueDate }}
+        </span>
+      }
+      <button class="icon-btn" (click)="deleteTask(t)" title="Xóa">✕</button>
+    </div>
+  } @empty {
+    <p class="muted">Không có công việc.</p>
+  }
+</section>
+
+<!-- Mục tiêu -->
+<section class="card">
+  <h3>Mục tiêu</h3>
+  <form class="inline-form" [formGroup]="goalForm" (ngSubmit)="addGoal()">
+    <label class="grow">Tên <input type="text" formControlName="name" maxlength="150" /></label>
+    <label>Tiến độ (%) <input type="number" formControlName="progress" min="0" max="100" /></label>
+    <button type="submit" [disabled]="goalForm.invalid">Thêm</button>
+  </form>
+
+  @for (g of goals(); track g.id) {
+    <div class="goal">
+      <div class="goal-head">
+        <strong>{{ g.name }}</strong>
+        <span>
+          <span class="muted">{{ g.progress }}%</span>
+          <button class="icon-btn" (click)="deleteGoal(g)" title="Xóa">✕</button>
+        </span>
+      </div>
+      <div class="bar"><span [style.width.%]="g.progress"></span></div>
+      <input type="range" min="0" max="100" step="5" [value]="g.progress"
+             (change)="saveProgress(g, $any($event.target).value)" style="width:100%" />
+    </div>
+  } @empty {
+    <p class="muted">Chưa có mục tiêu nào.</p>
+  }
+</section>
+
+<!-- Thói quen -->
+<section class="card">
+  <h3>Thói quen</h3>
+  <form class="inline-form" [formGroup]="habitForm" (ngSubmit)="addHabit()">
+    <label class="grow">Tên <input type="text" formControlName="name" maxlength="150" /></label>
+    <button type="submit" [disabled]="habitForm.invalid">Thêm</button>
+  </form>
+
+  @for (h of habits(); track h.id) {
+    <div class="habit">
+      <button class="check" [class.on]="h.checked" (click)="toggleHabit(h)" title="Check hôm nay">
+        {{ h.checked ? '✓' : '' }}
+      </button>
+      <span class="name">{{ h.name }}</span>
+      <span class="streak">🔥 {{ h.streak }}</span>
+      <button class="icon-btn" (click)="deleteHabit(h)" title="Xóa">✕</button>
+    </div>
+  } @empty {
+    <p class="muted">Chưa có thói quen nào.</p>
+  }
+</section>

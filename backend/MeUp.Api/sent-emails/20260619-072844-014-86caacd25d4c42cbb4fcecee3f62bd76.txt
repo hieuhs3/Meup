@@ -1,0 +1,4 @@
+To: lock_1781854123@test.local
+Subject: Xác thực email MeUp
+
+<p>Xin chào U,</p><p>Bấm vào liên kết sau để xác thực email của bạn:</p><p><a href="http://localhost:4200/confirm-email?email=lock_1781854123%40test.local&token=CfDJ8DPhEm%2Fdc0REjRUUYGSLnwsW1YDZxffLZwB7tPygFhFYRQrC26HOwntUbt%2FlLmd01KENy9hj%2Flmz8H9GLPmaz1nhFsnfTgdI48gHA7r9%2BHY9mHYZ7sffQUvDd0wEllm7GNBb%2BUiKJL%2F7mTLe%2FfTbZcXtTJzcs%2BAdqKG41BL%2FWyOUM7Slm0slR4VvSROuPZ7pHo6WJr4SAxcuin47zm9RHu0Q%2BATsKZ1Mg%2FVVtkRDQIitPDyof98y%2FOf0mifu2LZE7A%3D%3D">Xác thực email</a></p>

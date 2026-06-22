@@ -1,0 +1,6 @@
+@MeUp.Api_HostAddress = http://localhost:5149
+
+GET {{MeUp.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

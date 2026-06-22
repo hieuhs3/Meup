@@ -1,0 +1,216 @@
+<header class="page-head">
+  <h1>Tài chính</h1>
+  <p class="muted">Quản lý thu chi theo ngày.</p>
+</header>
+
+@if (error()) { <p class="error">{{ error() }}</p> }
+
+<!-- Tổng quan -->
+@if (summary(); as s) {
+  <div class="sum-grid">
+    <div class="sum">
+      <div class="label">Số dư hiện tại</div>
+      <div class="value" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">{{ fmt(s.balance) }}</div>
+    </div>
+    <div class="sum">
+      <div class="label">Thu hôm nay</div>
+      <div class="value income">{{ fmt(s.dayIncome) }}</div>
+    </div>
+    <div class="sum">
+      <div class="label">Chi hôm nay</div>
+      <div class="value expense">{{ fmt(s.dayExpense) }}</div>
+    </div>
+    <div class="sum">
+      <div class="label">Thu tháng này</div>
+      <div class="value income">{{ fmt(s.monthIncome) }}</div>
+    </div>
+    <div class="sum">
+      <div class="label">Chi tháng này</div>
+      <div class="value expense">{{ fmt(s.monthExpense) }}</div>
+    </div>
+  </div>
+}
+
+<!-- Thêm / sửa giao dịch -->
+<section class="card">
+  <h3>{{ editingId() ? 'Sửa giao dịch' : 'Thêm giao dịch' }}</h3>
+  <form [formGroup]="txForm" (ngSubmit)="submitTransaction()">
+    <div class="row">
+      <label>Loại
+        <select formControlName="type">
+          <option value="expense">Chi</option>
+          <option value="income">Thu</option>
+        </select>
+      </label>
+      <label>Số tiền (₫)
+        <input type="number" formControlName="amount" min="0" step="1000" />
+      </label>
+      <label>Danh mục
+        <select formControlName="categoryId">
+          <option value="">— Không —</option>
+          @for (c of categoriesForType(); track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      </label>
+      <label>Ngày
+        <input type="date" formControlName="date" />
+      </label>
+    </div>
+    <label>Ghi chú
+      <input type="text" formControlName="note" maxlength="500" placeholder="Tùy chọn" />
+    </label>
+    <button type="button" class="ghost" (click)="suggestCategory()" [disabled]="suggesting() || !txForm.value.note">
+      {{ suggesting() ? 'Đang gợi ý…' : '✨ Gợi ý danh mục (AI)' }}
+    </button>
+    @if (txMsg()) { <p class="success">{{ txMsg() }}</p> }
+    <button type="submit" [disabled]="txForm.invalid">{{ editingId() ? 'Cập nhật' : 'Thêm' }}</button>
+    @if (editingId()) {
+      <button type="button" class="ghost" (click)="resetForm()">Hủy</button>
+    }
+  </form>
+</section>
+
+<!-- Lọc + danh sách -->
+<section class="card">
+  <h3>Giao dịch</h3>
+  <form [formGroup]="filterForm" (ngSubmit)="applyFilter()">
+    <div class="row">
+      <label>Từ ngày <input type="date" formControlName="from" /></label>
+      <label>Đến ngày <input type="date" formControlName="to" /></label>
+      <label>Loại
+        <select formControlName="type">
+          <option value="">Tất cả</option>
+          <option value="expense">Chi</option>
+          <option value="income">Thu</option>
+        </select>
+      </label>
+      <label>Danh mục
+        <select formControlName="categoryId">
+          <option value="">Tất cả</option>
+          @for (c of categories(); track c.id) {
+            <option [value]="c.id">{{ c.name }} ({{ c.type === 'income' ? 'thu' : 'chi' }})</option>
+          }
+        </select>
+      </label>
+      <label>Tìm ghi chú <input type="text" formControlName="q" /></label>
+    </div>
+    <button type="submit">Lọc</button>
+    <button type="button" class="ghost" (click)="resetFilter()">Đặt lại</button>
+  </form>
+
+  @if (list(); as l) {
+    <table class="table">
+      <thead>
+        <tr><th>Ngày</th><th>Loại</th><th>Danh mục</th><th>Ghi chú</th><th style="text-align:right">Số tiền</th><th></th></tr>
+      </thead>
+      <tbody>
+        @for (t of l.items; track t.id) {
+          <tr>
+            <td>{{ t.date }}</td>
+            <td><span class="badge" [class]="t.type">{{ t.type === 'income' ? 'Thu' : 'Chi' }}</span></td>
+            <td>
+              @if (t.categoryName) {
+                <span class="dot" [style.background]="t.categoryColor || '#8d99ae'"></span>{{ t.categoryName }}
+              } @else { <span class="muted">—</span> }
+            </td>
+            <td>{{ t.note || '—' }}</td>
+            <td class="amount" [class]="t.type">{{ t.type === 'income' ? '+' : '−' }}{{ fmt(t.amount) }}</td>
+            <td class="actions" style="text-align:right; white-space:nowrap">
+              <button class="ghost" (click)="editTransaction(t)">Sửa</button>
+              <button class="ghost" (click)="deleteTransaction(t)">Xóa</button>
+            </td>
+          </tr>
+        } @empty {
+          <tr><td colspan="6" class="muted" style="text-align:center; padding:1.5rem">Chưa có giao dịch nào.</td></tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="pager">
+      <span class="muted">{{ l.total }} giao dịch · trang {{ l.page }}/{{ totalPages() }}</span>
+      <button class="ghost" (click)="prevPage()" [disabled]="l.page <= 1">‹ Trước</button>
+      <button class="ghost" (click)="nextPage()" [disabled]="l.page >= totalPages()">Sau ›</button>
+    </div>
+  }
+</section>
+
+<!-- Ngân sách (A1) -->
+<section class="card">
+  <h3>Ngân sách tháng này</h3>
+  <form class="row" [formGroup]="budgetForm" (ngSubmit)="addBudget()">
+    <label>Danh mục chi
+      <select formControlName="categoryId">
+        <option value="">— Chọn —</option>
+        @for (c of expenseCategories(); track c.id) {
+          <option [value]="c.id">{{ c.name }}</option>
+        }
+      </select>
+    </label>
+    <label>Hạn mức (₫)
+      <input type="number" formControlName="amount" min="0" step="10000" />
+    </label>
+    <button type="submit" [disabled]="budgetForm.invalid">Đặt ngân sách</button>
+  </form>
+  @if (budgetMsg()) { <p class="success">{{ budgetMsg() }}</p> }
+
+  @for (b of budgets(); track b.id) {
+    <div class="goal">
+      <div class="goal-head">
+        <strong><span class="dot" [style.background]="b.categoryColor || '#8d99ae'"></span>{{ b.categoryName }}</strong>
+        <span>
+          <span class="muted">{{ fmt(b.spent) }} / {{ fmt(b.amount) }}</span>
+          <button class="icon-btn" (click)="deleteBudget(b)" title="Xóa">✕</button>
+        </span>
+      </div>
+      <div class="bar">
+        <span [style.width.%]="b.percent > 100 ? 100 : b.percent"
+              [style.background]="b.percent >= 100 ? 'var(--danger)' : (b.percent >= 80 ? '#f59e0b' : 'var(--success)')"></span>
+      </div>
+      <p class="muted" style="margin:.2rem 0 0">
+        {{ b.percent }}% ·
+        @if (b.remaining >= 0) { còn {{ fmt(b.remaining) }} }
+        @else { <span style="color:var(--danger)">vượt {{ fmt(-b.remaining) }}</span> }
+        · sửa hạn mức:
+        <input class="inline-input" type="number" [value]="b.amount" (change)="saveBudget(b, $any($event.target).value)" style="width:120px" />
+      </p>
+    </div>
+  } @empty {
+    <p class="muted">Chưa đặt ngân sách. Chọn danh mục chi và hạn mức để theo dõi.</p>
+  }
+</section>
+
+<!-- Quản lý danh mục -->
+<section class="card">
+  <h3>Danh mục</h3>
+  <form [formGroup]="catForm" (ngSubmit)="addCategory()">
+    <div class="row">
+      <label>Tên <input type="text" formControlName="name" maxlength="50" /></label>
+      <label>Loại
+        <select formControlName="type">
+          <option value="expense">Chi</option>
+          <option value="income">Thu</option>
+        </select>
+      </label>
+      <label>Màu <input type="color" formControlName="color" /></label>
+      <button type="submit" [disabled]="catForm.invalid">Thêm danh mục</button>
+    </div>
+  </form>
+  @if (catMsg()) { <p class="success">{{ catMsg() }}</p> }
+
+  <div class="cat-list">
+    @for (c of categories(); track c.id) {
+      <span class="cat-chip">
+        <span class="dot" [style.background]="c.color || '#8d99ae'"></span>
+        @if (editingCatId() === c.id) {
+          <input #nm class="inline-input" [value]="c.name" (keyup.enter)="saveCategory(c, nm.value)" />
+          <button (click)="saveCategory(c, nm.value)">Lưu</button>
+        } @else {
+          {{ c.name }} <small class="muted">({{ c.type === 'income' ? 'thu' : 'chi' }})</small>
+          <button title="Sửa tên" (click)="startEditCategory(c)">✎</button>
+          <button title="Xóa" (click)="deleteCategory(c)">✕</button>
+        }
+      </span>
+    }
+  </div>
+</section>

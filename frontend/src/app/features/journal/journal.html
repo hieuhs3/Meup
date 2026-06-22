@@ -1,0 +1,93 @@
+<header class="page-head">
+  <h1>Nhật ký</h1>
+  <p class="muted">Viết nhật ký theo ngày với định dạng phong phú.</p>
+</header>
+
+@if (error()) { <p class="error">{{ error() }}</p> }
+@if (msg()) { <p class="success">{{ msg() }}</p> }
+
+<!-- Ghi chú nhanh (A5) -->
+<section class="card">
+  <h3>Ghi chú nhanh</h3>
+  <form (ngSubmit)="addNote()" style="display:flex; gap:.6rem; align-items:flex-start">
+    <textarea [(ngModel)]="newNote" name="newNote" rows="2" placeholder="Ghi chú nhanh…"
+              style="flex:1; margin:0; padding:.6rem .7rem; border:1px solid var(--border); border-radius:8px; font:inherit; resize:vertical"></textarea>
+    <button type="submit" [disabled]="!newNote.trim()">Thêm</button>
+  </form>
+
+  @for (n of notes(); track n.id) {
+    <div class="entry">
+      @if (editingNoteId() === n.id) {
+        <textarea #nt rows="2" style="width:100%; padding:.5rem; border:1px solid var(--border); border-radius:8px; font:inherit">{{ n.content }}</textarea>
+        <div class="actions" style="text-align:right; margin-top:.3rem">
+          <button class="ghost" (click)="saveNote(n, nt.value)">Lưu</button>
+          <button class="ghost" (click)="editingNoteId.set(null)">Hủy</button>
+        </div>
+      } @else {
+        <div style="white-space:pre-wrap">{{ n.content }}</div>
+        <div class="actions" style="text-align:right">
+          <button class="ghost" (click)="editingNoteId.set(n.id)">Sửa</button>
+          <button class="ghost" (click)="deleteNote(n)">Xóa</button>
+        </div>
+      }
+    </div>
+  } @empty {
+    <p class="muted">Chưa có ghi chú nhanh.</p>
+  }
+</section>
+
+<!-- Soạn thảo -->
+@if (editorOpen) {
+  <section class="card">
+    <h3>{{ editingId() ? 'Sửa nhật ký' : 'Viết nhật ký mới' }}</h3>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="bar">
+        <label>Ngày <input type="date" formControlName="date" /></label>
+        <label style="flex:1; min-width:200px">Tiêu đề
+          <input type="text" formControlName="title" maxlength="200" placeholder="Tiêu đề (tùy chọn)" />
+        </label>
+      </div>
+      <label>Nội dung</label>
+      <app-rich-editor formControlName="contentHtml"></app-rich-editor>
+      <div style="margin-top:.8rem">
+        <button type="submit" [disabled]="form.invalid">Lưu</button>
+        <button type="button" class="ghost" (click)="cancel()">Hủy</button>
+      </div>
+    </form>
+  </section>
+} @else {
+  <div class="bar">
+    <button type="button" (click)="newEntry()">✍ Viết nhật ký mới</button>
+  </div>
+}
+
+<!-- Lọc + danh sách -->
+<section class="card">
+  <form class="bar" [formGroup]="filterForm" (ngSubmit)="load()">
+    <label>Từ ngày <input type="date" formControlName="from" /></label>
+    <label>Đến ngày <input type="date" formControlName="to" /></label>
+    <label style="flex:1; min-width:160px">Tìm <input type="text" formControlName="q" placeholder="từ khóa…" /></label>
+    <button type="submit">Lọc</button>
+  </form>
+
+  @for (e of entries(); track e.id) {
+    <div class="entry">
+      <div class="entry-head">
+        <h4>{{ e.title || '(Không tiêu đề)' }}</h4>
+        <span class="meta">{{ e.date }}</span>
+      </div>
+      @if (expandedId() === e.id) {
+        <div class="full" [innerHTML]="e.contentHtml"></div>
+      } @else {
+        <p class="excerpt">{{ excerpt(e.contentHtml) }}</p>
+      }
+      <div class="actions" style="text-align:right">
+        <button class="ghost" (click)="toggleExpand(e.id)">{{ expandedId() === e.id ? 'Thu gọn' : 'Xem' }}</button>
+        <button class="ghost" (click)="edit(e)">Sửa</button>
+        <button class="ghost" (click)="remove(e)">Xóa</button>
+      </div>
+    </div>
+  } @empty {
+    <p class="muted">Chưa có bài nhật ký nào. Bấm "Viết nhật ký mới" để bắt đầu.</p>
+  }
+</section>

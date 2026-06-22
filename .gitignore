@@ -1,0 +1,33 @@
+# ---- .NET ----
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+.vs/
+project.lock.json
+artifacts/
+
+# ASP.NET local secrets / runtime config (never commit secrets)
+appsettings.*.local.json
+secrets.json
+
+# ---- Node / Angular ----
+node_modules/
+dist/
+.angular/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ---- Editor / OS ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# ---- Claude Code (per-user local settings) ----
+.claude/settings.local.json
+
+# ---- Misc build/log ----
+ng-new.log

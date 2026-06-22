@@ -1,0 +1,4 @@
+To: c2_1781854102@test.local
+Subject: Xác thực email MeUp
+
+<p>Xin chào U,</p><p>Bấm vào liên kết sau để xác thực email của bạn:</p><p><a href="http://localhost:4200/confirm-email?email=c2_1781854102%40test.local&token=CfDJ8DPhEm%2Fdc0REjRUUYGSLnwvY5FJ37rownjR658jFWHRWmbr3wHiLsxQQIJ%2BbloCPaNAX0c%2FeE%2BA%2FAw00sGBGUMsW5G1hksOg%2FmNb%2Bvr8rEB%2BCkT8TvhBOHSpjUoPbZsbqMOWNAdu8kQjDeXFOb%2F4ilTtmtJZhwZEIqlfVuJOSCy3J4XkbzitqwQEtTvf%2F%2FE5xDhWbPFtEtKwF%2Fl82pgcTwPjGNxM5IFSF9wFA%2B13kgxfaMW16sZRnKg2OMZh2ULUaw%3D%3D">Xác thực email</a></p>

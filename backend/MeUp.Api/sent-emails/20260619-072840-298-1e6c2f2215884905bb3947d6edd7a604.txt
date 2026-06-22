@@ -1,0 +1,4 @@
+To: admin@meup.local
+Subject: MeUp — Nhắc việc hôm nay
+
+<p>1 việc quá hạn · 1 thuốc chưa uống.</p><p>Xem chi tiết trong mục Hôm nay.</p>

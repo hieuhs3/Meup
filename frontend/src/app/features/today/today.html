@@ -1,0 +1,73 @@
+<header class="page-head">
+  <h1>Hôm nay</h1>
+  <p class="muted">Xin chào {{ auth.user()?.displayName }} 👋</p>
+</header>
+
+<div class="date-bar">
+  <button class="ghost nav" (click)="shiftDay(-1)" title="Ngày trước">◀</button>
+  <input type="date" [value]="date()" (change)="pickDate($any($event.target).value)" />
+  <button class="ghost nav" (click)="shiftDay(1)" title="Ngày sau">▶</button>
+  <span class="day-label">{{ dateLabel() }}</span>
+  @if (!isToday()) {
+    <button class="today-btn" (click)="goToday()">Về hôm nay</button>
+  }
+</div>
+
+<div class="cards">
+  <!-- Tài chính -->
+  <a class="card tile" routerLink="/app/finance">
+    <h3>💰 Tài chính</h3>
+    @if (finance(); as s) {
+      <p class="hint" style="margin:0">Số dư</p>
+      <p class="big" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">{{ fmt(s.balance) }}</p>
+      @if (s.dayIncome > 0 || s.dayExpense > 0) {
+        <p class="hint" style="margin:0">Ngày này: <span class="income">+{{ fmt(s.dayIncome) }}</span> · <span class="expense">−{{ fmt(s.dayExpense) }}</span></p>
+      } @else {
+        <p class="hint">Chưa có giao dịch ngày này. <span class="pill">Thêm giao dịch →</span></p>
+      }
+    } @else {
+      <p class="hint">Đang tải…</p>
+    }
+  </a>
+
+  <!-- Sức khỏe -->
+  <a class="card tile" routerLink="/app/health">
+    <h3>♥ Sức khỏe</h3>
+    @if (health(); as h) {
+      <p class="hint" style="margin:.2rem 0">Cân nặng: <strong>{{ h.weight ?? '—' }}</strong> kg · Ngủ: <strong>{{ h.sleepHours ?? '—' }}</strong> h</p>
+      <p class="hint" style="margin:0">Nước: {{ h.waterMl ?? '—' }} ml · Tập: {{ h.workoutMinutes ?? '—' }} phút</p>
+    } @else {
+      <p class="hint">Chưa ghi nhật ký ngày này. <span class="pill">Ghi ngay →</span></p>
+    }
+  </a>
+
+  <!-- Lịch trình -->
+  <a class="card tile" routerLink="/app/calendar">
+    <h3>📅 Lịch trình</h3>
+    @if (events(); as evs) {
+      @if (evs.length) {
+        <p class="big" style="font-size:1.2rem">{{ evs.length }} sự kiện</p>
+        <p class="hint" style="margin:0">{{ hm(evs[0].startTime) || 'Cả ngày' }} · {{ evs[0].title }}</p>
+      } @else {
+        <p class="hint">Không có sự kiện. <span class="pill">Thêm →</span></p>
+      }
+    } @else { <p class="hint">Đang tải…</p> }
+  </a>
+
+  <!-- Công việc -->
+  <a class="card tile" routerLink="/app/work">
+    <h3>✓ Công việc</h3>
+    @if (work(); as w) {
+      @if (w.tasksTotal > 0 || w.goalsCount > 0 || w.habitsTotal > 0) {
+        <p class="hint" style="margin:.2rem 0">Việc: <strong>{{ w.tasksDone }}/{{ w.tasksTotal }}</strong> xong
+          @if (w.tasksOverdue > 0) { · <span class="expense">{{ w.tasksOverdue }} quá hạn</span> }
+        </p>
+        <p class="hint" style="margin:0">Mục tiêu TB: {{ w.goalsAvgProgress }}% · Thói quen: {{ w.habitsCheckedToday }}/{{ w.habitsTotal }}</p>
+      } @else {
+        <p class="hint">Chưa có việc/mục tiêu/thói quen. <span class="pill">Bắt đầu →</span></p>
+      }
+    } @else {
+      <p class="hint">Đang tải…</p>
+    }
+  </a>
+</div>

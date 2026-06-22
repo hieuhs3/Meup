@@ -1,0 +1,112 @@
+<header class="page-head">
+  <h1>Sức khỏe</h1>
+  <p class="muted">Nhật ký chỉ số theo ngày.</p>
+</header>
+
+@if (error()) { <p class="error">{{ error() }}</p> }
+
+<div class="date-row">
+  <label>Ngày
+    <input type="date" [value]="date()" (change)="changeDate($any($event.target).value)" />
+  </label>
+</div>
+
+<!-- So sánh với lần ghi trước -->
+@if (summary()?.previous) {
+  <section class="card">
+    <h3>So với lần ghi trước ({{ summary()!.previous!.date }})</h3>
+    <div class="metrics">
+      @for (m of deltas(); track m.label) {
+        <div class="metric">
+          <div class="label">{{ m.label }}</div>
+          <div class="cur">{{ m.cur ?? '—' }} <small class="muted">{{ m.cur !== null ? m.unit : '' }}</small></div>
+          @if (m.diff !== null && m.diff !== 0) {
+            <div class="delta" [class.up]="m.diff > 0" [class.down]="m.diff < 0">
+              {{ m.diff > 0 ? '▲' : '▼' }} {{ m.diff > 0 ? '+' : '' }}{{ m.diff }} {{ m.unit }}
+            </div>
+          } @else {
+            <div class="delta flat">— không đổi</div>
+          }
+        </div>
+      }
+    </div>
+  </section>
+}
+
+<!-- Nhật ký ngày (upsert) -->
+<section class="card">
+  <h3>Nhật ký ngày {{ date() }}</h3>
+  <form [formGroup]="form" (ngSubmit)="save()">
+    <div class="row">
+      <label>Cân nặng (kg)
+        <input type="number" formControlName="weight" min="0" max="500" step="0.1" />
+      </label>
+      <label>Giờ ngủ
+        <input type="number" formControlName="sleepHours" min="0" max="24" step="0.5" />
+      </label>
+      <label>Nước (ml)
+        <input type="number" formControlName="waterMl" min="0" max="20000" step="100" />
+      </label>
+      <label>Tập (phút)
+        <input type="number" formControlName="workoutMinutes" min="0" max="1440" step="5" />
+      </label>
+    </div>
+    <label>Ghi chú
+      <input type="text" formControlName="note" maxlength="500" placeholder="Tùy chọn" />
+    </label>
+    @if (msg()) { <p class="success">{{ msg() }}</p> }
+    <button type="submit" [disabled]="form.invalid">Lưu nhật ký</button>
+    @if (hasToday()) {
+      <button type="button" class="ghost" (click)="remove()">Xóa ngày này</button>
+    }
+  </form>
+</section>
+
+<!-- Thuốc (A2) -->
+<section class="card">
+  <h3>Thuốc ngày {{ date() }}</h3>
+  <form class="row" [formGroup]="medForm" (ngSubmit)="addMed()">
+    <label style="flex:1">Tên thuốc <input type="text" formControlName="name" maxlength="150" /></label>
+    <label>Liều <input type="text" formControlName="dosage" maxlength="100" placeholder="1 viên sáng" /></label>
+    <label style="flex:1">Ghi chú <input type="text" formControlName="note" maxlength="500" /></label>
+    <button type="submit" [disabled]="medForm.invalid">Thêm</button>
+  </form>
+
+  @for (m of medications(); track m.id) {
+    <div class="habit">
+      <button class="check" [class.on]="m.taken" (click)="toggleMed(m)" title="Đánh dấu đã uống">{{ m.taken ? '✓' : '' }}</button>
+      <span class="name">
+        {{ m.name }}
+        @if (m.dosage) { <small class="muted"> · {{ m.dosage }}</small> }
+        @if (m.note) { <small class="muted"> · {{ m.note }}</small> }
+      </span>
+      <button class="icon-btn" (click)="deleteMed(m)" title="Xóa">✕</button>
+    </div>
+  } @empty {
+    <p class="muted">Chưa có thuốc nào. Thêm để theo dõi uống thuốc hằng ngày.</p>
+  }
+</section>
+
+<!-- Lịch sử gần đây -->
+<section class="card">
+  <h3>Lịch sử gần đây</h3>
+  <table class="table">
+    <thead>
+      <tr><th>Ngày</th><th>Cân nặng</th><th>Giờ ngủ</th><th>Nước</th><th>Tập</th><th>Ghi chú</th></tr>
+    </thead>
+    <tbody>
+      @for (l of history(); track l.date) {
+        <tr>
+          <td>{{ l.date }}</td>
+          <td>{{ l.weight ?? '—' }}</td>
+          <td>{{ l.sleepHours ?? '—' }}</td>
+          <td>{{ l.waterMl ?? '—' }}</td>
+          <td>{{ l.workoutMinutes ?? '—' }}</td>
+          <td>{{ l.note || '—' }}</td>
+        </tr>
+      } @empty {
+        <tr><td colspan="6" class="muted" style="text-align:center; padding:1.5rem">Chưa có nhật ký nào.</td></tr>
+      }
+    </tbody>
+  </table>
+</section>

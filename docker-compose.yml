@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:16
+    container_name: meup-db
+    environment:
+      POSTGRES_DB: meup
+      POSTGRES_USER: meup
+      POSTGRES_PASSWORD: meup_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - meup-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meup -d meup"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: meup-redis
+    ports:
+      - "6379:6379"
+
+volumes:
+  meup-db-data:

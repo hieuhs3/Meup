@@ -1,0 +1,15 @@
+{
+  "name": "MeUp — Quản lý bản thân",
+  "short_name": "MeUp",
+  "description": "Quản lý tất tần tật về bản thân theo từng ngày: tài chính, sức khỏe, công việc, lịch, nhật ký.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f4f6fb",
+  "theme_color": "#4361ee",
+  "lang": "vi",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

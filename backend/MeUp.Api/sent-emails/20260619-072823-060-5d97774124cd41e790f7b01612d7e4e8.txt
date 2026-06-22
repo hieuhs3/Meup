@@ -1,0 +1,4 @@
+To: c2_1781854102@test.local
+Subject: Đặt lại mật khẩu MeUp
+
+<p>Xin chào U,</p><p>Bấm vào liên kết sau để đặt lại mật khẩu (hết hạn sau một thời gian ngắn):</p><p><a href="http://localhost:4200/reset-password?email=c2_1781854102%40test.local&token=CfDJ8DPhEm%2Fdc0REjRUUYGSLnwvOsd4i4iP2MRtCJtxllKgWM4M9C5dzDLewyE8DOnVsY6BJjvh02qugxxFW03r0L97kLo1MfUFb26vbgkvFD6Cafm4Hj9V3vXqlqTK%2B1yJAvik66ACDzMAEZsvnBp%2FHS1fW%2Ff7ly%2FMecrzVJUglyqWHPARPd875AzZnt%2F8W%2BqE8Ki%2FR6M%2BXzb7Ljr8bjXwbtfs6QO%2FXwOVAZhKZikhofC9b">Đặt lại mật khẩu</a></p><p>Nếu bạn không yêu cầu, hãy bỏ qua email này.</p>

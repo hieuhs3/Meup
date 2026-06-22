@@ -1,0 +1,60 @@
+<header class="page-head">
+  <h1>Lịch trình</h1>
+  <p class="muted">Sự kiện theo ngày.</p>
+</header>
+
+@if (error()) { <p class="error">{{ error() }}</p> }
+
+<div class="date-bar">
+  <button class="ghost nav" (click)="shiftDay(-1)" title="Ngày trước">◀</button>
+  <input type="date" [value]="date()" (change)="changeDate($any($event.target).value)" />
+  <button class="ghost nav" (click)="shiftDay(1)" title="Ngày sau">▶</button>
+  @if (!editorOpen()) {
+    <button (click)="newEvent()">＋ Thêm sự kiện</button>
+  }
+</div>
+
+@if (editorOpen()) {
+  <section class="card">
+    <h3>{{ editingId() ? 'Sửa sự kiện' : 'Thêm sự kiện' }}</h3>
+    <form [formGroup]="form" (ngSubmit)="save()">
+      <div class="row">
+        <label>Bắt đầu <input type="time" formControlName="startTime" /></label>
+        <label>Kết thúc <input type="time" formControlName="endTime" /></label>
+        <label style="flex:2">Tiêu đề <input type="text" formControlName="title" maxlength="200" /></label>
+      </div>
+      <div class="row">
+        <label style="flex:1">Địa điểm <input type="text" formControlName="location" maxlength="200" /></label>
+        <label style="flex:2">Ghi chú <input type="text" formControlName="note" maxlength="1000" /></label>
+      </div>
+      <div style="margin-top:.6rem">
+        <button type="submit" [disabled]="form.invalid">Lưu</button>
+        <button type="button" class="ghost" (click)="cancel()">Hủy</button>
+      </div>
+    </form>
+  </section>
+}
+
+<section class="card">
+  <h3>Sự kiện ngày {{ date() }}</h3>
+  @for (e of list(); track e.id) {
+    <div class="ev">
+      @if (e.startTime) {
+        <span class="time">{{ hm(e.startTime) }}@if (e.endTime) { – {{ hm(e.endTime) }} }</span>
+      } @else {
+        <span class="time allday">Cả ngày</span>
+      }
+      <div class="body">
+        <div class="title">{{ e.title }}</div>
+        @if (e.location) { <div class="meta">📍 {{ e.location }}</div> }
+        @if (e.note) { <div class="meta">{{ e.note }}</div> }
+      </div>
+      <div class="actions" style="white-space:nowrap">
+        <button class="ghost" (click)="edit(e)">Sửa</button>
+        <button class="ghost" (click)="remove(e)">Xóa</button>
+      </div>
+    </div>
+  } @empty {
+    <p class="muted">Không có sự kiện. Bấm "Thêm sự kiện" để tạo.</p>
+  }
+</section>
