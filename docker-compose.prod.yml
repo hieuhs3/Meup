@@ -60,6 +60,8 @@ services:
     volumes:
       # Giữ avatar upload qua các lần redeploy.
       - meup-uploads:/app/wwwroot/uploads
+      # Giữ khóa Data Protection để API key (đã mã hóa) của user không hỏng sau redeploy.
+      - meup-keys:/app/keys
     expose:
       - "8080"   # chỉ nội bộ trong mạng compose; không mở ra Internet
 
@@ -76,3 +78,4 @@ services:
 volumes:
   meup-db-data:
   meup-uploads:
+  meup-keys:

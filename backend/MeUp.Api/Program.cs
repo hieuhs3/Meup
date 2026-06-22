@@ -5,6 +5,7 @@ using MeUp.Api.Options;
 using MeUp.Api.Services;
 using GoogleOptions = MeUp.Api.Options.GoogleOptions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -98,6 +99,11 @@ builder.Services.AddHostedService<ReminderBackgroundService>();
 // --- AI (Claude API) ---
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));
 builder.Services.AddScoped<IAiInsightService, AiInsightService>();
+// Data Protection: dùng để mã hóa API key riêng của từng user. Lưu khóa ra thư mục "keys"
+// (mount volume ở production) để giá trị đã mã hóa vẫn giải mã được sau khi restart/redeploy.
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.Combine(builder.Environment.ContentRootPath, "keys")))
+    .SetApplicationName("MeUp");
 builder.Services.AddHttpClient<IGoogleTokenValidator, GoogleTokenValidator>();
 
 // Chạy sau reverse proxy / Cloudflare Tunnel: tin header X-Forwarded-* để

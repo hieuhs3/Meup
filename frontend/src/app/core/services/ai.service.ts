@@ -16,13 +16,32 @@ export interface CategorySuggestion {
   categoryName: string | null;
 }
 
+export interface AiStatus {
+  /** AI dùng được (user có key riêng hoặc server có key). */
+  enabled: boolean;
+  /** User đã tự đặt API key của mình. */
+  hasUserKey: boolean;
+  /** Đang dùng key chung của server (user chưa đặt key). */
+  usingServerKey: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AiService {
   private readonly http = inject(HttpClient);
   private readonly base = `${API_BASE}/ai`;
 
-  status(): Observable<{ enabled: boolean }> {
-    return this.http.get<{ enabled: boolean }>(`${this.base}/status`);
+  status(): Observable<AiStatus> {
+    return this.http.get<AiStatus>(`${this.base}/status`);
+  }
+
+  /** Lưu API key Claude của riêng người dùng (mã hóa phía server). */
+  setKey(apiKey: string): Observable<AiStatus> {
+    return this.http.put<AiStatus>(`${this.base}/key`, { apiKey });
+  }
+
+  /** Xóa API key của người dùng. */
+  clearKey(): Observable<AiStatus> {
+    return this.http.delete<AiStatus>(`${this.base}/key`);
   }
 
   weeklyInsight(date?: string, refresh = false): Observable<WeeklyInsight> {

@@ -4,38 +4,82 @@ using MeUp.Api.Data;
 using MeUp.Api.Dtos;
 using MeUp.Api.Entities;
 using MeUp.Api.Options;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 
 namespace MeUp.Api.Services;
 
 /// <summary>
-/// Tính năng AI dùng Claude API (SDK Anthropic). Opus 4.8 cho tổng kết tuần, Haiku 4.5 cho phân loại.
-/// Tắt an toàn (Enabled=false) khi chưa cấu hình Ai:ApiKey.
+/// Tính năng AI dùng Claude API (SDK Anthropic). Mỗi người dùng tự nhập API key của mình (BYO),
+/// được MÃ HÓA bằng Data Protection. Nếu user chưa đặt key thì fallback key server (nếu có),
+/// không có thì AI tắt. Opus 4.8 cho tổng kết tuần, Haiku 4.5 cho phân loại.
 /// </summary>
 public class AiInsightService : IAiInsightService
 {
     private readonly AppDbContext _db;
     private readonly IStatsService _stats;
     private readonly ILogger<AiInsightService> _logger;
-    private readonly AnthropicClient? _client;
+    private readonly IDataProtector _protector;
+    private readonly string? _serverKey;
 
-    public AiInsightService(AppDbContext db, IStatsService stats, IOptions<AiOptions> opt, ILogger<AiInsightService> logger)
+    public AiInsightService(
+        AppDbContext db,
+        IStatsService stats,
+        IOptions<AiOptions> opt,
+        IDataProtectionProvider dp,
+        ILogger<AiInsightService> logger)
     {
         _db = db;
         _stats = stats;
         _logger = logger;
-        if (opt.Value.IsConfigured)
-            _client = new AnthropicClient { ApiKey = opt.Value.ApiKey };
+        _protector = dp.CreateProtector("MeUp.Ai.ApiKey.v1");
+        _serverKey = opt.Value.IsConfigured ? opt.Value.ApiKey : null;
     }
 
-    public bool Enabled => _client is not null;
+    public async Task<AiStatusDto> GetStatusAsync(Guid userId)
+    {
+        var enc = await _db.Users.Where(u => u.Id == userId).Select(u => u.EncryptedAiApiKey).FirstOrDefaultAsync();
+        var hasUserKey = !string.IsNullOrEmpty(enc);
+        var hasServer = !string.IsNullOrWhiteSpace(_serverKey);
+        return new AiStatusDto(hasUserKey || hasServer, hasUserKey, !hasUserKey && hasServer);
+    }
+
+    public async Task SetUserKeyAsync(Guid userId, string apiKey)
+    {
+        var user = await _db.Users.FirstAsync(u => u.Id == userId);
+        user.EncryptedAiApiKey = _protector.Protect(apiKey.Trim());
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task ClearUserKeyAsync(Guid userId)
+    {
+        var user = await _db.Users.FirstAsync(u => u.Id == userId);
+        user.EncryptedAiApiKey = null;
+        await _db.SaveChangesAsync();
+    }
+
+    /// <summary>Tạo client từ key của user (giải mã); không có thì dùng key server; không có nữa thì null.</summary>
+    private async Task<AnthropicClient?> ClientForUserAsync(Guid userId)
+    {
+        var enc = await _db.Users.Where(u => u.Id == userId).Select(u => u.EncryptedAiApiKey).FirstOrDefaultAsync();
+        string? key = null;
+        if (!string.IsNullOrEmpty(enc))
+        {
+            try { key = _protector.Unprotect(enc); }
+            catch (Exception ex) { _logger.LogWarning(ex, "Không giải mã được AI key của user {UserId}.", userId); }
+        }
+        key ??= _serverKey;
+        return string.IsNullOrWhiteSpace(key) ? null : new AnthropicClient { ApiKey = key };
+    }
 
     public async Task<WeeklyInsightDto> GetWeeklyInsightAsync(Guid userId, DateOnly date, bool refresh = false)
     {
         var from = date.AddDays(-6);
         var to = date;
-        if (_client is null) return new WeeklyInsightDto(false, null, from, to);
+
+        var client = await ClientForUserAsync(userId);
+        if (client is null) return new WeeklyInsightDto(false, null, from, to);
 
         // Đọc cache trước: nếu đã có tổng kết cho đúng khoảng tuần này thì trả luôn,
         // không gọi lại Claude (trừ khi yêu cầu tạo lại bằng refresh=true).
@@ -47,7 +91,7 @@ public class AiInsightService : IAiInsightService
         var stats = await _stats.GetStatsAsync(userId, from, to);
         try
         {
-            var resp = await _client.Messages.Create(new MessageCreateParams
+            var resp = await client.Messages.Create(new MessageCreateParams
             {
                 Model = Model.ClaudeOpus4_8,
                 MaxTokens = 1500,
@@ -84,7 +128,8 @@ public class AiInsightService : IAiInsightService
 
     public async Task<CategorySuggestionDto> SuggestCategoryAsync(Guid userId, string note, string type)
     {
-        if (_client is null) return new CategorySuggestionDto(false, null, null);
+        var client = await ClientForUserAsync(userId);
+        if (client is null) return new CategorySuggestionDto(false, null, null);
 
         var cats = await _db.Categories
             .Where(c => c.UserId == userId && c.Type == type)
@@ -100,7 +145,7 @@ public class AiInsightService : IAiInsightService
 
         try
         {
-            var resp = await _client.Messages.Create(new MessageCreateParams
+            var resp = await client.Messages.Create(new MessageCreateParams
             {
                 Model = Model.ClaudeHaiku4_5,
                 MaxTokens = 60,

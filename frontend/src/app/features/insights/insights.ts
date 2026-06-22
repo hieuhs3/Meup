@@ -1,8 +1,10 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { AiService, WeeklyInsight } from '../../core/services/ai.service';
 
 @Component({
   selector: 'app-insights',
+  imports: [RouterLink],
   template: `
     <header class="page-head">
       <h1>Gợi ý AI</h1>
@@ -11,8 +13,8 @@ import { AiService, WeeklyInsight } from '../../core/services/ai.service';
 
     @if (enabled() === false) {
       <section class="card">
-        <p class="muted">Tính năng AI chưa được bật. Quản trị viên cần cấu hình <code>Ai:ApiKey</code>
-          (ANTHROPIC_API_KEY) trong cấu hình máy chủ.</p>
+        <p class="muted">Tính năng AI chưa được bật. Vào <a routerLink="/app/settings">Cài đặt</a>
+          để nhập API key Claude của riêng bạn.</p>
       </section>
     } @else {
       <section class="card">

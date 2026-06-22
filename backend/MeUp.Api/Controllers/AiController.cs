@@ -17,7 +17,21 @@ public class AiController : ControllerBase
     private Guid UserId => User.GetUserId();
 
     [HttpGet("status")]
-    public IActionResult Status() => Ok(new { enabled = _ai.Enabled });
+    public async Task<IActionResult> Status() => Ok(await _ai.GetStatusAsync(UserId));
+
+    [HttpPut("key")]
+    public async Task<IActionResult> SetKey(SetAiKeyRequest request)
+    {
+        await _ai.SetUserKeyAsync(UserId, request.ApiKey);
+        return Ok(await _ai.GetStatusAsync(UserId));
+    }
+
+    [HttpDelete("key")]
+    public async Task<IActionResult> ClearKey()
+    {
+        await _ai.ClearUserKeyAsync(UserId);
+        return Ok(await _ai.GetStatusAsync(UserId));
+    }
 
     [HttpGet("weekly-insight")]
     public async Task<IActionResult> WeeklyInsight([FromQuery] DateOnly? date, [FromQuery] bool refresh = false)

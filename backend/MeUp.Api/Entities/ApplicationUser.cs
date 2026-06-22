@@ -32,5 +32,11 @@ public class ApplicationUser : IdentityUser<Guid>
     /// <summary>Mã ngôn ngữ, vd "vi".</summary>
     public string? Locale { get; set; }
 
+    /// <summary>
+    /// API key Claude của riêng người dùng (BYO), đã MÃ HÓA bằng Data Protection.
+    /// Không bao giờ lưu/trả về dạng thô. Null = dùng key server (nếu có) hoặc tắt AI.
+    /// </summary>
+    public string? EncryptedAiApiKey { get; set; }
+
     public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }
