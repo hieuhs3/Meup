@@ -1,0 +1,7 @@
+# Override để chạy thử cụm production NGAY TRÊN MÁY LOCAL (không cần Cloudflare).
+# Dùng kèm: docker compose -f docker-compose.prod.yml -f docker-compose.local.yml ...
+# Mở cổng web ra host; cloudflared không cần chạy (chỉ start db/redis/api/web).
+services:
+  web:
+    ports:
+      - "8088:80"
