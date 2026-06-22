@@ -44,6 +44,7 @@ export class Health implements OnInit {
   readonly history = signal<HealthLog[]>([]);
   readonly msg = signal<string | null>(null);
   readonly error = signal<string | null>(null);
+  readonly loading = signal(false);
 
   readonly medications = signal<Medication[]>([]);
   readonly medForm = this.fb.nonNullable.group({
@@ -123,12 +124,18 @@ export class Health implements OnInit {
   }
 
   private load(): void {
+    this.loading.set(true);
+    this.error.set(null);
     this.health.getSummary(this.date()).subscribe({
       next: (s) => {
         this.summary.set(s);
         this.patchForm(s.today);
+        this.loading.set(false);
       },
-      error: () => this.error.set('Không tải được dữ liệu sức khỏe.'),
+      error: () => {
+        this.error.set('Không tải được dữ liệu sức khỏe.');
+        this.loading.set(false);
+      },
     });
   }
 
@@ -136,7 +143,7 @@ export class Health implements OnInit {
     const from = this.isoDaysAgo(30);
     this.health.getLogs(from, this.todayIso()).subscribe({
       next: (l) => this.history.set(l),
-      error: () => {},
+      error: () => this.error.set('Không tải được lịch sử sức khỏe.'),
     });
   }
 

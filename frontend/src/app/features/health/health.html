@@ -4,6 +4,7 @@
 </header>
 
 @if (error()) { <p class="error">{{ error() }}</p> }
+@if (loading()) { <p class="loading-row"><span class="spinner"></span> Đang tải…</p> }
 
 <div class="date-row">
   <label>Ngày

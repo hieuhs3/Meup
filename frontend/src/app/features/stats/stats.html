@@ -8,8 +8,12 @@
 <form class="range" [formGroup]="form" (ngSubmit)="load()">
   <label>Từ ngày <input type="date" formControlName="from" /></label>
   <label>Đến ngày <input type="date" formControlName="to" /></label>
-  <button type="submit">Xem</button>
+  <button type="submit" [disabled]="loading()">Xem</button>
 </form>
+
+@if (loading()) {
+  <p class="loading-row"><span class="spinner"></span> Đang tải thống kê…</p>
+}
 
 @if (data(); as d) {
   <!-- Tài chính -->

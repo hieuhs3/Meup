@@ -83,7 +83,10 @@ export class Notifications implements OnInit {
         this.msg.set(r.created ? 'Đã tạo nhắc mới.' : 'Không có nhắc mới (đã nhắc hôm nay hoặc không có gì để nhắc).');
         this.load();
       },
-      error: () => this.busy.set(false),
+      error: () => {
+        this.busy.set(false);
+        this.msg.set('Chạy nhắc thất bại. Vui lòng thử lại.');
+      },
     });
   }
 }

@@ -14,11 +14,16 @@ import { SearchHit, SearchResult } from '../../core/models/search.models';
     </header>
 
     <form class="search-bar" (ngSubmit)="run()">
-      <input type="search" [(ngModel)]="q" name="q" placeholder="Nhập từ khóa…" autofocus />
-      <button type="submit">Tìm</button>
+      <label for="search-q" class="sr-only">Từ khóa tìm kiếm</label>
+      <input id="search-q" type="search" [(ngModel)]="q" name="q" placeholder="Nhập từ khóa…" autofocus />
+      <button type="submit" [disabled]="loading()">{{ loading() ? 'Đang tìm…' : 'Tìm' }}</button>
     </form>
 
-    @if (result(); as r) {
+    @if (loading()) {
+      <p class="loading-row"><span class="spinner"></span> Đang tìm…</p>
+    } @else if (searchError()) {
+      <p class="error">Tìm kiếm gặp lỗi. Vui lòng thử lại.</p>
+    } @else if (result(); as r) {
       <p class="muted">{{ r.total }} kết quả cho "{{ lastQuery() }}"</p>
       <section class="card">
         @for (h of r.items; track h.type + h.id) {
@@ -59,12 +64,25 @@ export class Search {
   q = '';
   readonly result = signal<SearchResult | null>(null);
   readonly lastQuery = signal('');
+  readonly loading = signal(false);
+  readonly searchError = signal(false);
 
   run(): void {
     const q = this.q.trim();
     if (!q) return;
     this.lastQuery.set(q);
-    this.search.search(q).subscribe({ next: (r) => this.result.set(r) });
+    this.loading.set(true);
+    this.searchError.set(false);
+    this.search.search(q).subscribe({
+      next: (r) => {
+        this.result.set(r);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+        this.searchError.set(true);
+      },
+    });
   }
 
   label(type: SearchHit['type']): string {

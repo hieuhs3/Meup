@@ -30,6 +30,7 @@ export class StatsPage implements OnInit {
 
   readonly data = signal<Stats | null>(null);
   readonly error = signal<string | null>(null);
+  readonly loading = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     from: [this.monthStart()],
@@ -57,9 +58,17 @@ export class StatsPage implements OnInit {
   load(): void {
     const { from, to } = this.form.getRawValue();
     if (!from || !to) return;
+    this.loading.set(true);
+    this.error.set(null);
     this.statsSvc.get(from, to).subscribe({
-      next: (d) => this.data.set(d),
-      error: () => this.error.set('Không tải được thống kê.'),
+      next: (d) => {
+        this.data.set(d);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('Không tải được thống kê.');
+        this.loading.set(false);
+      },
     });
   }
 

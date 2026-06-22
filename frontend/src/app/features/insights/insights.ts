@@ -19,6 +19,7 @@ import { AiService, WeeklyInsight } from '../../core/services/ai.service';
         <button (click)="generate(false)" [disabled]="busy()">
           {{ busy() ? 'Đang tạo…' : '✨ Tạo tổng kết tuần' }}
         </button>
+        @if (errMsg()) { <p class="error" style="margin-top:1rem">{{ errMsg() }}</p> }
         @if (insight(); as i) {
           <p class="muted" style="margin-top:1rem">
             Tuần {{ i.from }} – {{ i.to }}
@@ -39,6 +40,7 @@ export class Insights implements OnInit {
   readonly enabled = signal<boolean | null>(null);
   readonly busy = signal(false);
   readonly insight = signal<WeeklyInsight | null>(null);
+  readonly errMsg = signal<string | null>(null);
 
   ngOnInit(): void {
     this.ai.status().subscribe({
@@ -49,9 +51,13 @@ export class Insights implements OnInit {
 
   generate(refresh = false): void {
     this.busy.set(true);
+    this.errMsg.set(null);
     this.ai.weeklyInsight(undefined, refresh).subscribe({
       next: (i) => { this.insight.set(i); this.busy.set(false); },
-      error: () => this.busy.set(false),
+      error: () => {
+        this.busy.set(false);
+        this.errMsg.set('Không tạo được tổng kết lúc này. Vui lòng thử lại sau.');
+      },
     });
   }
 }

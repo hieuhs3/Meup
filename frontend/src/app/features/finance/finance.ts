@@ -241,7 +241,10 @@ export class Finance implements OnInit {
           this.txMsg.set(s.enabled ? 'AI chưa tìm được danh mục phù hợp.' : 'Tính năng AI chưa được bật.');
         }
       },
-      error: () => this.suggesting.set(false),
+      error: () => {
+        this.suggesting.set(false);
+        this.txMsg.set('Gợi ý AI gặp lỗi. Vui lòng thử lại.');
+      },
     });
   }
 
