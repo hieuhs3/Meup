@@ -4,23 +4,23 @@ Kiến trúc go-live:
 
 ```
 Người dùng (HTTPS)
-   ├─►  Cloudflare Pages      →  Angular frontend (tĩnh)
-   │         │ gọi API
-   │         ▼
-   └─►  Cloudflare Tunnel  →  meup-api (.NET) ──► PostgreSQL + Redis
-            (HTTPS, free)       trên Google Cloud Always Free VM (docker-compose)
+   │
+   └─►  Cloudflare Tunnel  →  web (nginx)  ┬─ /        → Angular (tĩnh)
+            (HTTPS, free)                  ├─ /api     → api (.NET)
+                                           └─ /uploads → api (.NET)
+                                                          │
+                                              api ──► PostgreSQL + Redis
+       Tất cả chạy bằng docker-compose trên Google Cloud Always Free VM
 ```
 
-- **Frontend**: Cloudflare Pages (miễn phí, CDN toàn cầu).
-- **Backend**: Google Cloud Always Free **e2-micro** VM chạy `docker-compose.prod.yml`
-  (API + PostgreSQL + Redis + `cloudflared`).
-- **HTTPS cho API**: Cloudflare Tunnel — chỉ kết nối ra ngoài (outbound), không cần mở cổng vào.
+**Toàn bộ BE + FE đóng gói trong Docker**, chạy một cụm `docker-compose.prod.yml`:
+- **web** (nginx): phục vụ Angular tĩnh + reverse-proxy `/api`, `/uploads` sang backend → **một origin duy nhất, không CORS, không cần domain API riêng**.
+- **api** (.NET) + **db** (PostgreSQL) + **redis** + **cloudflared**.
+- **HTTPS**: Cloudflare Tunnel trỏ **một hostname** → `web:80`; chỉ kết nối ra ngoài (outbound), không mở cổng vào.
 
-> `docker-compose.prod.yml` + Dockerfile chạy trên **bất kỳ Linux VM nào**, nên nếu sau này
-> đổi sang nhà cung cấp khác (Oracle, VPS trả phí…) thì chỉ thay bước "tạo máy" bên dưới.
-
-> Vì sao không để tất cả trên Cloudflare? CF chỉ chạy site tĩnh + Workers (JS/Wasm),
-> **không chạy được server .NET, PostgreSQL hay Redis**. Nên backend phải ở VM riêng.
+> Cụm này chạy trên **bất kỳ Linux VM nào** — đổi nhà cung cấp chỉ cần thay bước "tạo máy".
+> (Muốn FE lên Cloudflare Pages riêng thì vẫn được: đặt URL API đầy đủ trong `environment.prod.ts`
+> và trỏ tunnel tới `api:8080` thay vì `web:80`. Mặc định hướng dẫn này là full-docker.)
 
 ---
 
@@ -74,19 +74,19 @@ docker --version && docker compose version
 
 ---
 
-## 2. Tạo Cloudflare Tunnel (HTTPS cho API)
+## 2. Tạo Cloudflare Tunnel (HTTPS cho cả app)
 
 1. Cloudflare dashboard → **Zero Trust → Networks → Tunnels → Create a tunnel**.
 2. Loại **Cloudflared**, đặt tên (vd `meup`). Bấm tạo → trang hiện **token** (chuỗi rất dài).
    - **Copy token** này, lát nữa dán vào `.env.prod` (`CLOUDFLARE_TUNNEL_TOKEN`).
-3. Ở bước **Public Hostname** của tunnel, thêm:
-   - **Subdomain**: `api` · **Domain**: `yourdomain.com` → thành `api.yourdomain.com`
-   - **Service**: `HTTP` · `api:8080`  ← trỏ tới container API trong mạng compose.
-4. Lưu. (Cloudflare tự tạo bản ghi DNS + cấp SSL cho `api.yourdomain.com`.)
+3. Ở bước **Public Hostname** của tunnel, thêm **một** hostname cho toàn app:
+   - **Subdomain**: `app` (hoặc để trống = domain gốc) · **Domain**: `yourdomain.com`
+   - **Service**: `HTTP` · `web:80`  ← trỏ tới container nginx (web) trong mạng compose.
+4. Lưu. (Cloudflare tự tạo DNS + cấp SSL.) Cả FE lẫn API đi qua hostname này (nginx tự phân `/api`).
 
 ---
 
-## 3. Triển khai backend trên VM
+## 3. Triển khai cả cụm trên VM (BE + FE + DB + Redis)
 
 ```bash
 git clone https://github.com/hieuhs3/Meup.git
@@ -98,61 +98,46 @@ nano .env.prod        # điền tất cả giá trị (xem chú thích trong fil
 Bắt buộc điền đúng trong `.env.prod`:
 - `POSTGRES_PASSWORD` — mật khẩu DB mạnh.
 - `JWT_KEY` — chuỗi ngẫu nhiên ≥ 32 ký tự (`openssl rand -base64 48`).
-- `FRONTEND_ORIGIN` — URL Cloudflare Pages (vd `https://meup.pages.dev` hoặc domain riêng).
+- `FRONTEND_ORIGIN` — domain công khai của app (vd `https://app.yourdomain.com`); dùng cho link trong email.
 - `ADMIN_EMAIL`, `ADMIN_PASSWORD` — tài khoản admin đầu tiên.
 - `CLOUDFLARE_TUNNEL_TOKEN` — token ở bước 2.
 - (Tùy chọn) `AI_API_KEY`, `GOOGLE_CLIENT_ID`, `EMAIL_*`.
 
-Chạy stack:
+Chạy **toàn bộ** stack (build cả image web + api):
 ```bash
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.prod ps
-docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f api
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs -f
 ```
-API sẽ tự **migrate DB + seed admin** khi khởi động. Kiểm tra:
-```bash
-curl https://api.yourdomain.com/api/ai/status   # 401 (cần token) = API sống & qua tunnel OK
-```
+API tự **migrate DB + seed admin** khi khởi động. Frontend (Angular) được nginx phục vụ tĩnh ngay trong cụm.
+
+> **Mẹo build trên 1GB RAM**: build Angular trong container khá nặng. Nếu OOM, đảm bảo đã bật swap
+> (mục 1), hoặc build image ở máy khác rồi push lên registry và `pull` trên VM.
 
 ---
 
-## 4. Triển khai frontend lên Cloudflare Pages
+## 4. Frontend — KHÔNG cần bước riêng
 
-1. Sửa `frontend/src/environments/environment.prod.ts`:
-   ```ts
-   apiOrigin: 'https://api.yourdomain.com',   // domain API ở bước 2
-   ```
-   commit & push lên GitHub.
-2. Cloudflare dashboard → **Workers & Pages → Create → Pages → Connect to Git** → chọn repo `Meup`.
-3. Cấu hình build:
-   - **Framework preset**: Angular (hoặc None)
-   - **Build command**: `npm ci && npm run build`
-   - **Build output directory**: `frontend/dist/frontend/browser`
-   - **Root directory**: `frontend`
-   - (Pages tự nhận `_redirects` trong `public/` để SPA routing hoạt động.)
-4. Deploy. Pages cấp URL dạng `https://meup.pages.dev`.
-
-> URL Pages này phải khớp `FRONTEND_ORIGIN` trong `.env.prod` (CORS). Nếu đổi sang domain riêng,
-> cập nhật lại `.env.prod` rồi `docker compose ... up -d` lại API.
+Frontend đã nằm trong container **web** (nginx) của cụm Docker, phục vụ cùng domain với API
+(nginx proxy `/api`, `/uploads`). `environment.prod.ts` để `apiOrigin: ''` (cùng origin) — không cần sửa.
 
 ---
 
 ## 5. Hậu kiểm
 
-- [ ] Mở `https://meup.pages.dev` → đăng nhập bằng `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
+- [ ] Mở `https://app.yourdomain.com` → đăng nhập bằng `ADMIN_EMAIL`/`ADMIN_PASSWORD`.
+- [ ] `curl https://app.yourdomain.com/api/ai/status` → **401** (cần token) = API sống qua nginx+tunnel.
 - [ ] Tạo thử giao dịch/nhật ký → reload → dữ liệu còn (DB persistent).
-- [ ] Trang **Gợi ý AI**: nếu đã set `AI_API_KEY` → "Tạo tổng kết tuần" chạy.
+- [ ] Trang **Gợi ý AI**: nếu đã set key → "Tạo tổng kết tuần" chạy.
 
 ---
 
 ## 6. Vận hành
 
-**Cập nhật bản mới** (sau khi push code lên GitHub):
+**Cập nhật bản mới** (sau khi push code lên GitHub) — cập nhật cả BE lẫn FE một lệnh:
 ```bash
-# Backend (trên VM)
 cd ~/Meup && git pull
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
-# Frontend: Cloudflare Pages tự build lại mỗi khi push (CD sẵn).
 ```
 
 **Sao lưu DB:**
@@ -172,9 +157,9 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod restart api
 
 | Triệu chứng | Nguyên nhân & xử lý |
 |---|---|
-| FE gọi API bị **CORS** chặn | `FRONTEND_ORIGIN` trong `.env.prod` chưa khớp URL Pages → sửa rồi `up -d` lại API. |
-| FE gọi API **mixed content** (http) | `apiOrigin` trong `environment.prod.ts` phải là **https** (qua tunnel). |
-| `curl api...` không phản hồi | Kiểm tra `docker compose logs cloudflared`; xác nhận Public Hostname trỏ `api:8080`. |
+| Trang trắng / 404 khi mở app | Kiểm tra container `web` chạy chưa (`docker compose ps`); xem `docker compose logs web`. |
+| Gọi `/api` lỗi 502 | nginx chưa tới được `api` — xem `docker compose logs api` (DB chưa sẵn sàng?), thử `restart`. |
+| Domain không phản hồi | Kiểm tra `docker compose logs cloudflared`; xác nhận Public Hostname trỏ **`web:80`**. |
 | VM bị **OOM** / container bị kill | e2-micro chỉ 1GB — đảm bảo đã bật swap (mục 1); `docker stats` xem RAM. |
 | Không tạo được e2-micro free | Phải chọn region **us-west1/us-central1/us-east1** và đúng `e2-micro`. |
 | Avatar mất sau redeploy | Đã mount volume `meup-uploads`; đừng `docker compose down -v` (xóa volume). |

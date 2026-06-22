@@ -63,7 +63,17 @@ services:
       # Giữ khóa Data Protection để API key (đã mã hóa) của user không hỏng sau redeploy.
       - meup-keys:/app/keys
     expose:
-      - "8080"   # chỉ nội bộ trong mạng compose; không mở ra Internet
+      - "8080"   # chỉ nội bộ trong mạng compose; nginx (web) proxy sang đây
+
+  web:
+    build:
+      context: ./frontend
+    container_name: meup-web
+    restart: unless-stopped
+    depends_on:
+      - api
+    expose:
+      - "80"   # nội bộ; cloudflared trỏ tới đây
 
   cloudflared:
     image: cloudflare/cloudflared:latest
@@ -73,7 +83,7 @@ services:
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
-      - api
+      - web
 
 volumes:
   meup-db-data:
