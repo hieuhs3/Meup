@@ -1,0 +1,36 @@
+To: admin@meup.local
+Subject: MeUp — Báo cáo ngày 22/06/2026
+
+
+<div style="font-family:Segoe UI,Arial,sans-serif;max-width:560px;margin:0 auto;color:#1f2733">
+  <h2 style="color:#4361ee;margin:0 0 4px">Báo cáo ngày 22/06/2026</h2>
+  <p style="color:#76808f;margin:0 0 16px">Tổng kết một ngày của bạn trên MeUp.</p>
+
+  <h3 style="margin:18px 0 6px">💰 Tài chính</h3>
+  <table style="width:100%;border-collapse:collapse">
+    <tr><td style="padding:6px 0;color:#76808f">Tổng thu</td><td style="padding:6px 0;text-align:right;font-weight:600">0đ</td></tr>
+    <tr><td style="padding:6px 0;color:#76808f">Tổng chi</td><td style="padding:6px 0;text-align:right;font-weight:600">0đ</td></tr>
+    <tr><td style="padding:6px 0;color:#76808f">Chênh lệch</td><td style="padding:6px 0;text-align:right;font-weight:600">0đ</td></tr>
+  </table>
+
+  <h3 style="margin:18px 0 6px">✓ Công việc</h3>
+  <table style="width:100%;border-collapse:collapse">
+    <tr><td style="padding:6px 0;color:#76808f">Việc hoàn thành</td><td style="padding:6px 0;text-align:right;font-weight:600">0/3</td></tr>
+    <tr><td style="padding:6px 0;color:#76808f">Việc quá hạn</td><td style="padding:6px 0;text-align:right;font-weight:600">2</td></tr>
+    <tr><td style="padding:6px 0;color:#76808f">Lượt check thói quen</td><td style="padding:6px 0;text-align:right;font-weight:600">0</td></tr>
+  </table>
+
+  <h3 style="margin:18px 0 6px">♥ Sức khỏe</h3>
+  <table style="width:100%;border-collapse:collapse">
+    <tr><td style="padding:6px 0;color:#76808f">Có ghi nhật ký</td><td style="padding:6px 0;text-align:right;font-weight:600">Chưa</td></tr>
+    <tr><td style="padding:6px 0;color:#76808f">Cân nặng</td><td style="padding:6px 0;text-align:right;font-weight:600">—</td></tr>
+    <tr><td style="padding:6px 0;color:#76808f">Giờ ngủ</td><td style="padding:6px 0;text-align:right;font-weight:600">—</td></tr>
+  </table>
+
+  <h3 style="margin:18px 0 6px">📅 Lịch</h3>
+  <p style="margin:0">Không có sự kiện.</p>
+
+  <p style="margin:22px 0 0;color:#76808f;font-size:13px">
+    Bạn nhận email này vì đã bật "Báo cáo cuối ngày" trong Cài đặt MeUp. Tắt bất cứ lúc nào ở mục Cài đặt.
+  </p>
+</div>

@@ -60,6 +60,21 @@ import { ConfirmService } from '../../core/services/confirm.service';
     </section>
 
     <section class="card">
+      <h3>Báo cáo cuối ngày</h3>
+      <p class="muted">Nhận email tổng kết tài chính, công việc, sức khỏe mỗi ngày lúc <strong>21:00</strong>
+        (theo múi giờ trong hồ sơ của bạn).</p>
+      <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+        <input type="checkbox" style="width:auto;margin:0" [checked]="dailyReport()"
+               [disabled]="reportBusy()" (change)="toggleDailyReport($any($event.target).checked)" />
+        {{ dailyReport() ? 'Đang bật' : 'Đang tắt' }}
+      </label>
+      @if (reportMsg()) { <p [class]="reportOk() ? 'success' : 'error'">{{ reportMsg() }}</p> }
+      @if (dailyReport()) {
+        <button class="ghost" (click)="sendReportNow()" [disabled]="reportBusy()">📧 Gửi thử ngay</button>
+      }
+    </section>
+
+    <section class="card">
       <h3>Ngôn ngữ</h3>
       <p class="muted">Tiếng Việt (đa ngôn ngữ vi/en sẽ bổ sung sau).</p>
     </section>
@@ -84,8 +99,52 @@ export class Settings implements OnInit {
   readonly aiMsg = signal<string | null>(null);
   readonly aiOk = signal(false);
 
+  // --- Báo cáo cuối ngày ---
+  readonly dailyReport = signal(false);
+  readonly reportBusy = signal(false);
+  readonly reportMsg = signal<string | null>(null);
+  readonly reportOk = signal(false);
+
   ngOnInit(): void {
     this.ai.status().subscribe({ next: (s) => this.status.set(s) });
+    this.http.get<{ dailyReportEnabled: boolean }>(`${API_BASE}/users/me`).subscribe({
+      next: (p) => this.dailyReport.set(p.dailyReportEnabled),
+    });
+  }
+
+  toggleDailyReport(enabled: boolean): void {
+    this.reportBusy.set(true);
+    this.reportMsg.set(null);
+    this.http.put<{ dailyReportEnabled: boolean }>(`${API_BASE}/users/me/daily-report`, { enabled }).subscribe({
+      next: (p) => {
+        this.dailyReport.set(p.dailyReportEnabled);
+        this.reportBusy.set(false);
+        this.reportOk.set(true);
+        this.reportMsg.set(p.dailyReportEnabled ? 'Đã bật báo cáo cuối ngày.' : 'Đã tắt báo cáo cuối ngày.');
+      },
+      error: () => {
+        this.reportBusy.set(false);
+        this.reportOk.set(false);
+        this.reportMsg.set('Cập nhật thất bại.');
+      },
+    });
+  }
+
+  sendReportNow(): void {
+    this.reportBusy.set(true);
+    this.reportMsg.set(null);
+    this.http.post<{ sent: boolean }>(`${API_BASE}/users/me/daily-report/send-now`, {}).subscribe({
+      next: (r) => {
+        this.reportBusy.set(false);
+        this.reportOk.set(r.sent);
+        this.reportMsg.set(r.sent ? 'Đã gửi báo cáo. Kiểm tra hộp thư (hoặc log dev).' : 'Hôm nay đã gửi báo cáo rồi.');
+      },
+      error: () => {
+        this.reportBusy.set(false);
+        this.reportOk.set(false);
+        this.reportMsg.set('Gửi thất bại.');
+      },
+    });
   }
 
   saveKey(): void {

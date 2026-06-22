@@ -95,6 +95,8 @@ builder.Services.AddScoped<IExportService, ExportService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IReminderService, ReminderService>();
 builder.Services.AddHostedService<ReminderBackgroundService>();
+builder.Services.AddScoped<IDailyReportService, DailyReportService>();
+builder.Services.AddHostedService<DailyReportBackgroundService>();
 
 // --- AI (Claude API) ---
 builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions.SectionName));

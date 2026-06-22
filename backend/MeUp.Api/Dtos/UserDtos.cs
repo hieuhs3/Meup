@@ -18,7 +18,11 @@ public record UserProfileDto(
     string? Locale = null,
     bool TwoFactorEnabled = false,
     bool HasPassword = true,
-    IReadOnlyList<string>? AuthProviders = null);
+    IReadOnlyList<string>? AuthProviders = null,
+    bool DailyReportEnabled = false);
+
+/// <summary>Bật/tắt nhận email báo cáo cuối ngày.</summary>
+public record SetDailyReportRequest(bool Enabled);
 
 /// <summary>Cập nhật hồ sơ mở rộng. Chỉ DisplayName bắt buộc; còn lại tùy chọn.</summary>
 public record UpdateProfileRequest(

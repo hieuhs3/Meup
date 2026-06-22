@@ -25,11 +25,13 @@ public class UsersController : ControllerBase
 
     private readonly UserManager<ApplicationUser> _users;
     private readonly IWebHostEnvironment _env;
+    private readonly IDailyReportService _dailyReport;
 
-    public UsersController(UserManager<ApplicationUser> users, IWebHostEnvironment env)
+    public UsersController(UserManager<ApplicationUser> users, IWebHostEnvironment env, IDailyReportService dailyReport)
     {
         _users = users;
         _env = env;
+        _dailyReport = dailyReport;
     }
 
     [HttpGet("me")]
@@ -38,6 +40,27 @@ public class UsersController : ControllerBase
         var user = await _users.FindByIdAsync(User.GetUserId().ToString());
         if (user is null) return NotFound();
         return Ok(await UserProfileFactory.BuildAsync(_users, user));
+    }
+
+    [HttpPut("me/daily-report")]
+    public async Task<IActionResult> SetDailyReport(SetDailyReportRequest request)
+    {
+        var user = await _users.FindByIdAsync(User.GetUserId().ToString());
+        if (user is null) return NotFound();
+
+        user.DailyReportEnabled = request.Enabled;
+        var result = await _users.UpdateAsync(user);
+        if (!result.Succeeded) return BadRequest(IdentityError(result));
+
+        return Ok(await UserProfileFactory.BuildAsync(_users, user));
+    }
+
+    /// <summary>Gửi thử báo cáo cuối ngày ngay (cho hôm nay). Trả {sent} — false nếu hôm nay đã gửi.</summary>
+    [HttpPost("me/daily-report/send-now")]
+    public async Task<IActionResult> SendDailyReportNow()
+    {
+        var sent = await _dailyReport.SendForUserAsync(User.GetUserId(), DateOnly.FromDateTime(DateTime.UtcNow));
+        return Ok(new { sent });
     }
 
     [HttpPut("me")]

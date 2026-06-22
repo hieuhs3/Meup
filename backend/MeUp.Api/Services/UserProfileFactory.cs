@@ -30,6 +30,7 @@ public static class UserProfileFactory
             user.Locale,
             user.TwoFactorEnabled,
             hasPassword,
-            providers);
+            providers,
+            user.DailyReportEnabled);
     }
 }

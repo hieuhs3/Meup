@@ -32,6 +32,9 @@ public class ApplicationUser : IdentityUser<Guid>
     /// <summary>Mã ngôn ngữ, vd "vi".</summary>
     public string? Locale { get; set; }
 
+    /// <summary>Bật nhận email báo cáo tổng kết cuối ngày (gửi 21:00 theo múi giờ của user). Mặc định tắt.</summary>
+    public bool DailyReportEnabled { get; set; }
+
     /// <summary>
     /// API key Claude của riêng người dùng (BYO), đã MÃ HÓA bằng Data Protection.
     /// Không bao giờ lưu/trả về dạng thô. Null = dùng key server (nếu có) hoặc tắt AI.
