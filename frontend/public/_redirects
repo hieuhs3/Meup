@@ -1,0 +1,2 @@
+# Cloudflare Pages: mọi route đều trả index.html để Angular router xử lý (SPA).
+/*    /index.html   200

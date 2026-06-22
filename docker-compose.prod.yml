@@ -1,0 +1,78 @@
+# MeUp — Production stack cho Oracle Always Free VM (docker-compose).
+# Frontend KHÔNG ở đây (đã lên Cloudflare Pages). Stack này gồm:
+#   db (PostgreSQL) + redis + api (.NET) + cloudflared (Cloudflare Tunnel → HTTPS).
+#
+# Chạy:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# Secrets nằm trong .env.prod (KHÔNG commit — xem .env.prod.example).
+
+services:
+  db:
+    image: postgres:16
+    container_name: meup-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - meup-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: meup-redis
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: MeUp.Api/Dockerfile
+    container_name: meup-api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Default: "Host=db;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}"
+      Jwt__Key: ${JWT_KEY}
+      Jwt__Issuer: ${JWT_ISSUER:-MeUp.Api}
+      Jwt__Audience: ${JWT_AUDIENCE:-MeUp.Client}
+      # Origin của frontend trên Cloudflare Pages (cho CORS + link trong email).
+      Cors__Origins__0: ${FRONTEND_ORIGIN}
+      Email__WebBaseUrl: ${FRONTEND_ORIGIN}
+      # Tùy chọn:
+      Ai__ApiKey: ${AI_API_KEY:-}
+      Authentication__Google__ClientId: ${GOOGLE_CLIENT_ID:-}
+      Email__Host: ${EMAIL_HOST:-}
+      Email__Port: ${EMAIL_PORT:-587}
+      Email__User: ${EMAIL_USER:-}
+      Email__Password: ${EMAIL_PASSWORD:-}
+      Email__UseSsl: ${EMAIL_USESSL:-true}
+      Email__FromEmail: ${EMAIL_FROM:-no-reply@meup.local}
+      # Tài khoản admin khởi tạo lần đầu:
+      Seed__Admin__Email: ${ADMIN_EMAIL}
+      Seed__Admin__Password: ${ADMIN_PASSWORD}
+    volumes:
+      # Giữ avatar upload qua các lần redeploy.
+      - meup-uploads:/app/wwwroot/uploads
+    expose:
+      - "8080"   # chỉ nội bộ trong mạng compose; không mở ra Internet
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: meup-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      - api
+
+volumes:
+  meup-db-data:
+  meup-uploads:

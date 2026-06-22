@@ -26,6 +26,14 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+# ---- Dữ liệu runtime (avatar upload) ----
+backend/MeUp.Api/wwwroot/uploads/
+
+# ---- Secrets / env ----
+.env
+.env.*
+!.env.*.example
+
 # ---- Claude Code (per-user local settings) ----
 .claude/settings.local.json
 

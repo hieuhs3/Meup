@@ -5,6 +5,7 @@ using MeUp.Api.Options;
 using MeUp.Api.Services;
 using GoogleOptions = MeUp.Api.Options.GoogleOptions;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -99,6 +100,15 @@ builder.Services.Configure<AiOptions>(builder.Configuration.GetSection(AiOptions
 builder.Services.AddScoped<IAiInsightService, AiInsightService>();
 builder.Services.AddHttpClient<IGoogleTokenValidator, GoogleTokenValidator>();
 
+// Chạy sau reverse proxy / Cloudflare Tunnel: tin header X-Forwarded-* để
+// biết scheme/ip gốc (https) thay vì http nội bộ trong container.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
@@ -107,12 +117,14 @@ var app = builder.Build();
 // --- Migrate + seed dữ liệu khởi tạo ---
 await DbSeeder.SeedAsync(app.Services, builder.Configuration);
 
+app.UseForwardedHeaders();
+
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    // Sau Cloudflare Tunnel, TLS do Cloudflare lo; container chỉ chạy HTTP.
+    app.UseHttpsRedirection();
 }
-
-app.UseHttpsRedirection();
 app.UseStaticFiles(); // phục vụ avatar đã upload ở wwwroot/uploads
 app.UseCors(CorsPolicy);
 app.UseAuthentication();
