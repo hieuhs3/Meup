@@ -16,7 +16,16 @@ public class TaskItem
     /// <summary>Lặp lại: "none" | "daily" | "weekly" | "monthly". Khi hoàn thành sẽ tự sinh lần kế.</summary>
     public string Recurrence { get; set; } = Entities.Recurrence.None;
 
+    /// <summary>Mục tiêu chứa task (null = task tự do). Denormalized cho mọi cấp trong cây để truy vấn nhanh.</summary>
+    public Guid? GoalId { get; set; }
+
+    /// <summary>Task cha (null = task cấp 1 dưới mục tiêu; có giá trị = sub-task).</summary>
+    public Guid? ParentTaskId { get; set; }
+
     public ApplicationUser? User { get; set; }
+    public Goal? Goal { get; set; }
+    public TaskItem? ParentTask { get; set; }
+    public ICollection<TaskItem> SubTasks { get; set; } = new List<TaskItem>();
 }
 
 /// <summary>Giá trị hợp lệ của chu kỳ lặp task.</summary>

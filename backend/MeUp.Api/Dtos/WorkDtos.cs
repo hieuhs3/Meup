@@ -12,7 +12,9 @@ public record TaskDto(
     bool IsOverdue,
     DateTime? CompletedAt,
     DateTime CreatedAt,
-    string Recurrence);
+    string Recurrence,
+    Guid? GoalId,
+    Guid? ParentTaskId);
 
 public record CreateTaskRequest(
     [Required(ErrorMessage = "Tiêu đề là bắt buộc.")]
@@ -21,7 +23,13 @@ public record CreateTaskRequest(
     DateOnly? DueDate,
 
     [RegularExpression("none|daily|weekly|monthly", ErrorMessage = "Chu kỳ lặp không hợp lệ.")]
-    string? Recurrence);
+    string? Recurrence,
+
+    /// <summary>Mục tiêu chứa task (task cấp 1). Bỏ trống = task tự do.</summary>
+    Guid? GoalId = null,
+
+    /// <summary>Task cha nếu đây là sub-task. Khi có, GoalId được kế thừa từ cha.</summary>
+    Guid? ParentTaskId = null);
 
 public record UpdateTaskRequest(
     [Required(ErrorMessage = "Tiêu đề là bắt buộc.")]
@@ -35,23 +43,18 @@ public record UpdateTaskRequest(
 
 // --- Goal ---
 
-public record GoalDto(Guid Id, string Name, int Progress, DateTime CreatedAt);
+/// <summary>Mục tiêu. <c>Progress</c> tính tự động = % task con đã xong.</summary>
+public record GoalDto(Guid Id, string Name, int Progress, DateTime CreatedAt, int TaskCount, int DoneCount);
 
 public record CreateGoalRequest(
     [Required(ErrorMessage = "Tên mục tiêu là bắt buộc.")]
     [MaxLength(150, ErrorMessage = "Tên mục tiêu tối đa 150 ký tự.")]
-    string Name,
-
-    [Range(0, 100, ErrorMessage = "Tiến độ phải trong khoảng 0–100.")]
-    int Progress);
+    string Name);
 
 public record UpdateGoalRequest(
     [Required(ErrorMessage = "Tên mục tiêu là bắt buộc.")]
     [MaxLength(150, ErrorMessage = "Tên mục tiêu tối đa 150 ký tự.")]
-    string Name,
-
-    [Range(0, 100, ErrorMessage = "Tiến độ phải trong khoảng 0–100.")]
-    int Progress);
+    string Name);
 
 // --- Habit ---
 

@@ -18,7 +18,7 @@ public class WorkService : IWorkService
     private static TaskDto ToDto(TaskItem t) =>
         new(t.Id, t.Title, t.IsDone, t.DueDate,
             !t.IsDone && t.DueDate is not null && t.DueDate < Today,
-            t.CompletedAt, t.CreatedAt, t.Recurrence);
+            t.CompletedAt, t.CreatedAt, t.Recurrence, t.GoalId, t.ParentTaskId);
 
     public async Task<IReadOnlyList<TaskDto>> GetTasksAsync(Guid userId, string? status)
     {
@@ -37,6 +37,19 @@ public class WorkService : IWorkService
 
     public async Task<TaskDto> CreateTaskAsync(Guid userId, CreateTaskRequest request)
     {
+        // Sub-task: kế thừa GoalId từ task cha. Task cấp 1: dùng GoalId yêu cầu (nếu mục tiêu hợp lệ).
+        Guid? goalId = null;
+        Guid? parentId = null;
+        if (request.ParentTaskId is Guid pid)
+        {
+            var parent = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == pid && t.UserId == userId);
+            if (parent is not null) { parentId = parent.Id; goalId = parent.GoalId; }
+        }
+        else if (request.GoalId is Guid gid && await _db.Goals.AnyAsync(g => g.Id == gid && g.UserId == userId))
+        {
+            goalId = gid;
+        }
+
         var task = new TaskItem
         {
             Id = Guid.NewGuid(),
@@ -44,6 +57,8 @@ public class WorkService : IWorkService
             Title = request.Title.Trim(),
             DueDate = request.DueDate,
             Recurrence = NormalizeRecurrence(request.Recurrence),
+            GoalId = goalId,
+            ParentTaskId = parentId,
         };
         _db.Tasks.Add(task);
         await _db.SaveChangesAsync();
@@ -81,6 +96,8 @@ public class WorkService : IWorkService
                 Title = task.Title,
                 DueDate = NextDate(task.DueDate.Value, task.Recurrence),
                 Recurrence = task.Recurrence,
+                GoalId = task.GoalId,
+                ParentTaskId = task.ParentTaskId,
             });
         }
 
@@ -119,11 +136,35 @@ public class WorkService : IWorkService
 
     public async Task<IReadOnlyList<GoalDto>> GetGoalsAsync(Guid userId)
     {
-        return await _db.Goals
+        var goals = await _db.Goals
             .Where(g => g.UserId == userId)
             .OrderByDescending(g => g.CreatedAt)
-            .Select(g => new GoalDto(g.Id, g.Name, g.Progress, g.CreatedAt))
+            .Select(g => new { g.Id, g.Name, g.CreatedAt })
             .ToListAsync();
+
+        var agg = (await _db.Tasks
+            .Where(t => t.UserId == userId && t.GoalId != null)
+            .GroupBy(t => t.GoalId!.Value)
+            .Select(g => new { GoalId = g.Key, Total = g.Count(), Done = g.Count(t => t.IsDone) })
+            .ToListAsync())
+            .ToDictionary(x => x.GoalId);
+
+        return goals.Select(g =>
+        {
+            agg.TryGetValue(g.Id, out var a);
+            var total = a?.Total ?? 0;
+            var done = a?.Done ?? 0;
+            return new GoalDto(g.Id, g.Name, ProgressOf(done, total), g.CreatedAt, total, done);
+        }).ToList();
+    }
+
+    private static int ProgressOf(int done, int total) => total > 0 ? (int)Math.Round(done * 100.0 / total) : 0;
+
+    private async Task<GoalDto> BuildGoalDtoAsync(Guid userId, Goal goal)
+    {
+        var total = await _db.Tasks.CountAsync(t => t.UserId == userId && t.GoalId == goal.Id);
+        var done = await _db.Tasks.CountAsync(t => t.UserId == userId && t.GoalId == goal.Id && t.IsDone);
+        return new GoalDto(goal.Id, goal.Name, ProgressOf(done, total), goal.CreatedAt, total, done);
     }
 
     public async Task<GoalDto> CreateGoalAsync(Guid userId, CreateGoalRequest request)
@@ -133,11 +174,11 @@ public class WorkService : IWorkService
             Id = Guid.NewGuid(),
             UserId = userId,
             Name = request.Name.Trim(),
-            Progress = request.Progress,
+            Progress = 0, // tiến độ tính tự động từ task con
         };
         _db.Goals.Add(goal);
         await _db.SaveChangesAsync();
-        return new GoalDto(goal.Id, goal.Name, goal.Progress, goal.CreatedAt);
+        return new GoalDto(goal.Id, goal.Name, 0, goal.CreatedAt, 0, 0);
     }
 
     public async Task<GoalDto?> UpdateGoalAsync(Guid userId, Guid id, UpdateGoalRequest request)
@@ -146,9 +187,8 @@ public class WorkService : IWorkService
         if (goal is null) return null;
 
         goal.Name = request.Name.Trim();
-        goal.Progress = request.Progress;
         await _db.SaveChangesAsync();
-        return new GoalDto(goal.Id, goal.Name, goal.Progress, goal.CreatedAt);
+        return await BuildGoalDtoAsync(userId, goal);
     }
 
     public async Task<bool> DeleteGoalAsync(Guid userId, Guid id)
@@ -272,16 +312,16 @@ public class WorkService : IWorkService
         var tasksDone = tasks.Count(t => t.IsDone);
         var tasksOverdue = tasks.Count(t => !t.IsDone && t.DueDate is not null && t.DueDate < date);
 
-        var progresses = await _db.Goals.Where(g => g.UserId == userId)
-            .Select(g => g.Progress).ToListAsync();
-        var goalsAvg = progresses.Count > 0 ? (int)Math.Round(progresses.Average()) : 0;
+        // Tiến độ mục tiêu tính tự động từ task con.
+        var goals = await GetGoalsAsync(userId);
+        var goalsAvg = goals.Count > 0 ? (int)Math.Round(goals.Average(g => g.Progress)) : 0;
 
         var habitsTotal = await _db.Habits.CountAsync(h => h.UserId == userId);
         var habitsChecked = await _db.HabitChecks.CountAsync(c => c.UserId == userId && c.Date == date);
 
         return new WorkSummaryDto(
             tasksTotal, tasksDone, tasksOverdue,
-            progresses.Count, goalsAvg,
+            goals.Count, goalsAvg,
             habitsTotal, habitsChecked);
     }
 }

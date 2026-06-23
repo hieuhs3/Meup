@@ -1,30 +1,33 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { WorkService } from '../../core/services/work.service';
 import { ConfirmService } from '../../core/services/confirm.service';
-import { Goal, Habit, Recurrence, TaskItem, TaskStatus } from '../../core/models/work.models';
+import { Goal, Habit, Recurrence, TaskItem } from '../../core/models/work.models';
 
 @Component({
   selector: 'app-work',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, NgTemplateOutlet],
   templateUrl: './work.html',
   styles: [`
     .inline-form { display: flex; gap: .6rem; align-items: flex-end; flex-wrap: wrap; margin-bottom: 1rem; }
     .inline-form label { margin-bottom: 0; }
     .inline-form .grow { flex: 1; min-width: 160px; }
-    .tabs { display: flex; gap: .4rem; margin-bottom: .75rem; }
-    .tabs button { background: transparent; color: var(--primary); border: 1px solid var(--border); }
-    .tabs button.active { background: var(--primary); color: #fff; }
-    .item { display: flex; align-items: center; gap: .6rem; padding: .55rem 0; border-bottom: 1px solid var(--border); }
+    .goal-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+    .goal-head strong { font-size: 1.05rem; }
+    .bar { height: 8px; background: #eef1fb; border-radius: 999px; overflow: hidden; margin: .5rem 0 .75rem; }
+    .bar > span { display: block; height: 100%; background: var(--success); transition: width .25s; }
+    .quick-add { display: flex; gap: .5rem; margin: .5rem 0; flex-wrap: wrap; }
+    .quick-add input[type=text] { flex: 1; min-width: 160px; margin: 0; }
+    .quick-add input[type=date] { width: auto; margin: 0; }
+    .item { display: flex; align-items: center; gap: .55rem; padding: .4rem 0; }
     .item .title { flex: 1; }
     .item .title.done { text-decoration: line-through; color: var(--muted); }
-    .due { font-size: .8rem; color: var(--muted); }
+    .due { font-size: .8rem; color: var(--muted); white-space: nowrap; }
     .due.overdue { color: var(--danger); font-weight: 600; }
-    .icon-btn { background: transparent; color: var(--muted); padding: .2rem .4rem; }
-    .goal { padding: .6rem 0; border-bottom: 1px solid var(--border); }
-    .goal-head { display: flex; justify-content: space-between; align-items: center; }
-    .bar { height: 8px; background: #eef1fb; border-radius: 999px; overflow: hidden; margin: .4rem 0; }
-    .bar > span { display: block; height: 100%; background: var(--primary); }
+    .children { margin-left: 1.4rem; border-left: 2px solid var(--border); padding-left: .6rem; }
+    .subadd { display: flex; gap: .5rem; margin: .3rem 0 .3rem 1.4rem; }
+    .subadd input { margin: 0; }
     .habit { display: flex; align-items: center; gap: .7rem; padding: .55rem 0; border-bottom: 1px solid var(--border); }
     .habit .name { flex: 1; }
     .check { width: 34px; height: 34px; border-radius: 50%; padding: 0; background: #eef1fb; color: var(--primary); border: 1px solid var(--border); }
@@ -40,21 +43,19 @@ export class Work implements OnInit {
   readonly tasks = signal<TaskItem[]>([]);
   readonly goals = signal<Goal[]>([]);
   readonly habits = signal<Habit[]>([]);
-  readonly status = signal<TaskStatus>('all');
   readonly error = signal<string | null>(null);
+  /** Task đang mở ô thêm sub-task (chỉ 1 ô mở mỗi lần). */
+  readonly addingSubFor = signal<string | null>(null);
 
-  readonly taskForm = this.fb.nonNullable.group({
-    title: ['', [Validators.required, Validators.maxLength(200)]],
-    dueDate: [''],
-    recurrence: ['none' as Recurrence],
-  });
-
-  readonly recurrenceLabels: Record<Recurrence, string> = {
+  private readonly recurrenceLabels: Record<Recurrence, string> = {
     none: '', daily: '🔁 hằng ngày', weekly: '🔁 hằng tuần', monthly: '🔁 hằng tháng',
   };
+  recurrenceLabel(r: string): string {
+    return this.recurrenceLabels[r as Recurrence] ?? '';
+  }
+
   readonly goalForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
-    progress: [0, [Validators.min(0), Validators.max(100)]],
   });
   readonly habitForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
@@ -66,39 +67,75 @@ export class Work implements OnInit {
     this.loadHabits();
   }
 
+  // --- Dựng cây từ danh sách phẳng ---
+
+  topTasks(goalId: string): TaskItem[] {
+    return this.tasks().filter((t) => t.goalId === goalId && !t.parentTaskId);
+  }
+  childrenOf(taskId: string): TaskItem[] {
+    return this.tasks().filter((t) => t.parentTaskId === taskId);
+  }
+  standaloneTasks(): TaskItem[] {
+    return this.tasks().filter((t) => !t.goalId && !t.parentTaskId);
+  }
+
   // --- Task ---
 
   private loadTasks(): void {
-    this.work.getTasks(this.status()).subscribe({
+    this.work.getTasks('all').subscribe({
       next: (t) => this.tasks.set(t),
       error: () => this.error.set('Không tải được công việc.'),
     });
   }
 
-  setStatus(s: TaskStatus): void {
-    this.status.set(s);
-    this.loadTasks();
-  }
-
-  addTask(): void {
-    if (this.taskForm.invalid) return;
-    const v = this.taskForm.getRawValue();
-    this.work.createTask({ title: v.title, dueDate: v.dueDate || null, recurrence: v.recurrence }).subscribe({
+  /** Thêm task cấp 1 (vào mục tiêu nếu có goalId, ngược lại là task tự do). */
+  addTask(goalId: string | null, titleEl: HTMLInputElement, dueEl?: HTMLInputElement): void {
+    const title = titleEl.value.trim();
+    if (!title) return;
+    this.work.createTask({ title, goalId, dueDate: dueEl?.value || null }).subscribe({
       next: () => {
-        this.taskForm.reset({ title: '', dueDate: '', recurrence: 'none' });
-        this.loadTasks();
+        titleEl.value = '';
+        if (dueEl) dueEl.value = '';
+        this.reload();
       },
-      error: (err) => this.error.set(err?.error?.error ?? 'Thêm công việc thất bại.'),
+      error: (err) => this.error.set(err?.error?.error ?? 'Thêm task thất bại.'),
     });
   }
 
+  /** Thêm sub-task dưới một task. */
+  addSub(parent: TaskItem, titleEl: HTMLInputElement): void {
+    const title = titleEl.value.trim();
+    if (!title) return;
+    this.work.createTask({ title, parentTaskId: parent.id }).subscribe({
+      next: () => {
+        titleEl.value = '';
+        this.addingSubFor.set(null);
+        this.reload();
+      },
+      error: (err) => this.error.set(err?.error?.error ?? 'Thêm task con thất bại.'),
+    });
+  }
+
+  toggleAddSub(taskId: string): void {
+    this.addingSubFor.set(this.addingSubFor() === taskId ? null : taskId);
+  }
+
   toggleTask(t: TaskItem): void {
-    this.work.toggleTask(t.id).subscribe({ next: () => this.loadTasks() });
+    this.work.toggleTask(t.id).subscribe({ next: () => this.reload() });
   }
 
   async deleteTask(t: TaskItem): Promise<void> {
-    if (!(await this.confirm.ask('Xóa công việc này?'))) return;
-    this.work.deleteTask(t.id).subscribe({ next: () => this.loadTasks() });
+    const msg = this.childrenOf(t.id).length
+      ? 'Xóa task này và toàn bộ task con?'
+      : 'Xóa task này?';
+    if (!(await this.confirm.ask(msg))) return;
+    this.work.deleteTask(t.id).subscribe({ next: () => this.reload() });
+  }
+
+  /** Tải lại task + goal (để tiến độ goal cập nhật theo). */
+  private reload(): void {
+    this.loadTasks();
+    this.loadGoals();
   }
 
   // --- Goal ---
@@ -109,26 +146,18 @@ export class Work implements OnInit {
 
   addGoal(): void {
     if (this.goalForm.invalid) return;
-    const v = this.goalForm.getRawValue();
-    this.work.createGoal(v.name, Number(v.progress)).subscribe({
+    this.work.createGoal(this.goalForm.getRawValue().name).subscribe({
       next: () => {
-        this.goalForm.reset({ name: '', progress: 0 });
+        this.goalForm.reset({ name: '' });
         this.loadGoals();
       },
       error: (err) => this.error.set(err?.error?.error ?? 'Thêm mục tiêu thất bại.'),
     });
   }
 
-  saveProgress(g: Goal, value: string): void {
-    const p = Math.max(0, Math.min(100, Number(value)));
-    this.work.updateGoal(g.id, g.name, p).subscribe({
-      next: (updated) => this.goals.update((list) => list.map((x) => (x.id === g.id ? updated : x))),
-    });
-  }
-
   async deleteGoal(g: Goal): Promise<void> {
-    if (!(await this.confirm.ask(`Xóa mục tiêu "${g.name}"?`))) return;
-    this.work.deleteGoal(g.id).subscribe({ next: () => this.loadGoals() });
+    if (!(await this.confirm.ask(`Xóa mục tiêu "${g.name}" và toàn bộ task bên trong?`))) return;
+    this.work.deleteGoal(g.id).subscribe({ next: () => this.reload() });
   }
 
   // --- Habit ---

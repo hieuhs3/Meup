@@ -45,12 +45,12 @@ export class WorkService {
     return this.http.get<Goal[]>(`${this.base}/goals`);
   }
 
-  createGoal(name: string, progress: number): Observable<Goal> {
-    return this.http.post<Goal>(`${this.base}/goals`, { name, progress });
+  createGoal(name: string): Observable<Goal> {
+    return this.http.post<Goal>(`${this.base}/goals`, { name });
   }
 
-  updateGoal(id: string, name: string, progress: number): Observable<Goal> {
-    return this.http.put<Goal>(`${this.base}/goals/${id}`, { name, progress });
+  updateGoal(id: string, name: string): Observable<Goal> {
+    return this.http.put<Goal>(`${this.base}/goals/${id}`, { name });
   }
 
   deleteGoal(id: string): Observable<void> {

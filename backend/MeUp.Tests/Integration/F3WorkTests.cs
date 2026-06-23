@@ -80,22 +80,42 @@ public class F3WorkTests : IClassFixture<MeUpWebAppFactory>
     // --- Goal ---
 
     [Fact]
-    public async Task Goal_TaoVaCapNhatTienDo()
+    public async Task Goal_TienDoTuDong_TheoTaskCon()
     {
         var c = await NewUserClientAsync();
-        var g = await Json(await c.PostAsJsonAsync("/api/work/goals", new { name = "Đọc sách", progress = 30 }));
-        var id = g.GetProperty("id").GetString();
+        var g = await Json(await c.PostAsJsonAsync("/api/work/goals", new { name = "Đọc sách" }));
+        var gid = g.GetProperty("id").GetString();
+        Assert.Equal(0, g.GetProperty("progress").GetInt32());
 
-        var updated = await Json(await c.PutAsJsonAsync($"/api/work/goals/{id}", new { name = "Đọc sách", progress = 80 }));
-        Assert.Equal(80, updated.GetProperty("progress").GetInt32());
+        var t1 = await Json(await c.PostAsJsonAsync("/api/work/tasks", new { title = "Chương 1", goalId = gid }));
+        await c.PostAsJsonAsync("/api/work/tasks", new { title = "Chương 2", goalId = gid });
+        await c.PostAsync($"/api/work/tasks/{t1.GetProperty("id").GetString()}/toggle", null);
+
+        var goal = (await Json(await c.GetAsync("/api/work/goals")))[0];
+        Assert.Equal(2, goal.GetProperty("taskCount").GetInt32());
+        Assert.Equal(1, goal.GetProperty("doneCount").GetInt32());
+        Assert.Equal(50, goal.GetProperty("progress").GetInt32()); // 1/2 xong = 50%
     }
 
     [Fact]
-    public async Task Goal_TienDoNgoaiKhoang_400()
+    public async Task Task_SubTask_KeThuaGoal_VaXoaGoalCascade()
     {
         var c = await NewUserClientAsync();
-        Assert.Equal(HttpStatusCode.BadRequest,
-            (await c.PostAsJsonAsync("/api/work/goals", new { name = "X", progress = 150 })).StatusCode);
+        var g = await Json(await c.PostAsJsonAsync("/api/work/goals", new { name = "Dự án" }));
+        var gid = g.GetProperty("id").GetString();
+
+        var t = await Json(await c.PostAsJsonAsync("/api/work/tasks", new { title = "Task cấp 1", goalId = gid }));
+        var tid = t.GetProperty("id").GetString();
+        Assert.Equal(gid, t.GetProperty("goalId").GetString());
+
+        var sub = await Json(await c.PostAsJsonAsync("/api/work/tasks", new { title = "Sub-task", parentTaskId = tid }));
+        Assert.Equal(tid, sub.GetProperty("parentTaskId").GetString());
+        Assert.Equal(gid, sub.GetProperty("goalId").GetString()); // kế thừa goal từ cha
+        Assert.Equal(2, (await Json(await c.GetAsync("/api/work/tasks"))).GetArrayLength());
+
+        // Xóa mục tiêu → cascade xóa cả task cấp 1 lẫn sub-task
+        await c.DeleteAsync($"/api/work/goals/{gid}");
+        Assert.Equal(0, (await Json(await c.GetAsync("/api/work/tasks"))).GetArrayLength());
     }
 
     // --- Habit ---
@@ -142,10 +162,11 @@ public class F3WorkTests : IClassFixture<MeUpWebAppFactory>
     public async Task Summary_DemDungSoLieu()
     {
         var c = await NewUserClientAsync();
-        var t = await Json(await c.PostAsJsonAsync("/api/work/tasks", new { title = "T1" }));
+        var g = await Json(await c.PostAsJsonAsync("/api/work/goals", new { name = "G" }));
+        var gid = g.GetProperty("id").GetString();
+        var t = await Json(await c.PostAsJsonAsync("/api/work/tasks", new { title = "T1", goalId = gid }));
         await c.PostAsync($"/api/work/tasks/{t.GetProperty("id").GetString()}/toggle", null);
-        await c.PostAsJsonAsync("/api/work/tasks", new { title = "T2", dueDate = "2020-01-01" });
-        await c.PostAsJsonAsync("/api/work/goals", new { name = "G", progress = 50 });
+        await c.PostAsJsonAsync("/api/work/tasks", new { title = "T2", dueDate = "2020-01-01", goalId = gid });
         var h = await Json(await c.PostAsJsonAsync("/api/work/habits", new { name = "H" }));
         await c.PostAsync($"/api/work/habits/{h.GetProperty("id").GetString()}/check?date=2026-06-18", null);
 

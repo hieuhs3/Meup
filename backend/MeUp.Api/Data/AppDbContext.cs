@@ -104,7 +104,13 @@ public class AppDbContext : IdentityDbContext<ApplicationUser, ApplicationRole, 
             e.Property(x => x.Title).HasMaxLength(200).IsRequired();
             e.Property(x => x.Recurrence).HasMaxLength(10).HasDefaultValue(Recurrence.None);
             e.HasIndex(x => new { x.UserId, x.IsDone });
+            e.HasIndex(x => x.GoalId);
+            e.HasIndex(x => x.ParentTaskId);
             e.HasOne(x => x.User).WithMany().HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            // Xóa mục tiêu → xóa mọi task thuộc nó (GoalId denormalized nên phủ cả sub-task).
+            e.HasOne(x => x.Goal).WithMany().HasForeignKey(x => x.GoalId).OnDelete(DeleteBehavior.Cascade);
+            // Xóa task → xóa sub-task (tự tham chiếu). Postgres cho phép nhiều đường cascade.
+            e.HasOne(x => x.ParentTask).WithMany(t => t.SubTasks).HasForeignKey(x => x.ParentTaskId).OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<Goal>(e =>

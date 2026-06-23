@@ -11,12 +11,16 @@ export interface TaskItem {
   completedAt: string | null;
   createdAt: string;
   recurrence: Recurrence;
+  goalId: string | null;
+  parentTaskId: string | null;
 }
 
 export interface CreateTaskRequest {
   title: string;
   dueDate?: string | null;
   recurrence?: Recurrence;
+  goalId?: string | null;
+  parentTaskId?: string | null;
 }
 
 export interface UpdateTaskRequest {
@@ -29,8 +33,10 @@ export interface UpdateTaskRequest {
 export interface Goal {
   id: string;
   name: string;
-  progress: number;
+  progress: number; // tính tự động từ % task con đã xong
   createdAt: string;
+  taskCount: number;
+  doneCount: number;
 }
 
 export interface Habit {

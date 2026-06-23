@@ -1,79 +1,90 @@
 <header class="page-head">
   <h1>Công việc</h1>
-  <p class="muted">Việc cần làm, mục tiêu và thói quen.</p>
+  <p class="muted">Mục tiêu → task → task con. Tiến độ mục tiêu tự tính theo task đã xong.</p>
 </header>
 
 @if (error()) { <p class="error">{{ error() }}</p> }
 
-<!-- Việc cần làm -->
-<section class="card">
-  <h3>Việc cần làm</h3>
-  <form class="inline-form" [formGroup]="taskForm" (ngSubmit)="addTask()">
-    <label class="grow">Tiêu đề <input type="text" formControlName="title" maxlength="200" /></label>
-    <label>Hạn <input type="date" formControlName="dueDate" /></label>
-    <label>Lặp lại
-      <select formControlName="recurrence">
-        <option value="none">Không</option>
-        <option value="daily">Hằng ngày</option>
-        <option value="weekly">Hằng tuần</option>
-        <option value="monthly">Hằng tháng</option>
-      </select>
-    </label>
-    <button type="submit" [disabled]="taskForm.invalid">Thêm</button>
-  </form>
-
-  <div class="tabs">
-    <button [class.active]="status() === 'all'" (click)="setStatus('all')">Tất cả</button>
-    <button [class.active]="status() === 'active'" (click)="setStatus('active')">Chưa xong</button>
-    <button [class.active]="status() === 'done'" (click)="setStatus('done')">Đã xong</button>
+<!-- Mẫu đệ quy: render 1 task + các task con -->
+<ng-template #taskTpl let-t>
+  <div class="item">
+    <input type="checkbox" style="width:auto;margin:0" [checked]="t.isDone" (change)="toggleTask(t)"
+           [attr.aria-label]="'Đánh dấu xong: ' + t.title" />
+    <span class="title" [class.done]="t.isDone">{{ t.title }}
+      @if (t.recurrence !== 'none') { <small class="muted">{{ recurrenceLabel(t.recurrence) }}</small> }
+    </span>
+    @if (t.dueDate) {
+      <span class="due" [class.overdue]="t.isOverdue">{{ t.isOverdue ? '⚠ ' : 'hạn ' }}{{ t.dueDate }}</span>
+    }
+    <button class="icon-btn" (click)="toggleAddSub(t.id)" title="Thêm task con" aria-label="Thêm task con">＋</button>
+    <button class="icon-btn danger" (click)="deleteTask(t)" title="Xóa" aria-label="Xóa task">✕</button>
   </div>
 
-  @for (t of tasks(); track t.id) {
-    <div class="item">
-      <input type="checkbox" [checked]="t.isDone" (change)="toggleTask(t)" style="width:auto" />
-      <span class="title" [class.done]="t.isDone">{{ t.title }}
-        @if (t.recurrence !== 'none') { <small class="muted">{{ recurrenceLabels[t.recurrence] }}</small> }
-      </span>
-      @if (t.dueDate) {
-        <span class="due" [class.overdue]="t.isOverdue">
-          {{ t.isOverdue ? '⚠ quá hạn ' : 'hạn ' }}{{ t.dueDate }}
-        </span>
-      }
-      <button class="icon-btn" (click)="deleteTask(t)" title="Xóa">✕</button>
+  @if (addingSubFor() === t.id) {
+    <div class="subadd">
+      <input #si type="text" placeholder="Tên task con…" (keyup.enter)="addSub(t, si)" />
+      <button (click)="addSub(t, si)">Thêm</button>
     </div>
-  } @empty {
-    <p class="muted">Chưa có công việc nào. Thêm việc đầu tiên ở ô phía trên ↑</p>
   }
-</section>
 
-<!-- Mục tiêu -->
+  @for (c of childrenOf(t.id); track c.id) {
+    <div class="children">
+      <ng-container *ngTemplateOutlet="taskTpl; context: { $implicit: c }" />
+    </div>
+  }
+</ng-template>
+
+<!-- Tạo mục tiêu -->
 <section class="card">
-  <h3>Mục tiêu</h3>
+  <h3>Mục tiêu mới</h3>
   <form class="inline-form" [formGroup]="goalForm" (ngSubmit)="addGoal()">
-    <label class="grow">Tên <input type="text" formControlName="name" maxlength="150" /></label>
-    <label>Tiến độ (%) <input type="number" formControlName="progress" min="0" max="100" /></label>
-    <button type="submit" [disabled]="goalForm.invalid">Thêm</button>
+    <label class="grow">Tên mục tiêu <input type="text" formControlName="name" maxlength="150" /></label>
+    <button type="submit" [disabled]="goalForm.invalid">Thêm mục tiêu</button>
   </form>
+</section>
 
-  @for (g of goals(); track g.id) {
-    <div class="goal">
-      <div class="goal-head">
-        <strong>{{ g.name }}</strong>
-        <span>
-          <span class="muted">{{ g.progress }}%</span>
-          <button class="icon-btn" (click)="deleteGoal(g)" title="Xóa">✕</button>
-        </span>
-      </div>
-      <div class="bar"><span [style.width.%]="g.progress"></span></div>
-      <input type="range" min="0" max="100" step="5" [value]="g.progress"
-             (change)="saveProgress(g, $any($event.target).value)" style="width:100%" />
+<!-- Cây mục tiêu -->
+@for (g of goals(); track g.id) {
+  <section class="card">
+    <div class="goal-head">
+      <strong>🎯 {{ g.name }}</strong>
+      <span style="display:flex;align-items:center;gap:.6rem">
+        <span class="muted">{{ g.doneCount }}/{{ g.taskCount }} · {{ g.progress }}%</span>
+        <button class="icon-btn danger" (click)="deleteGoal(g)" title="Xóa mục tiêu" aria-label="Xóa mục tiêu">✕</button>
+      </span>
     </div>
+    <div class="bar"><span [style.width.%]="g.progress"></span></div>
+
+    <div class="quick-add">
+      <input #gt type="text" placeholder="Thêm task vào mục tiêu…" (keyup.enter)="addTask(g.id, gt, gd)" />
+      <input #gd type="date" title="Hạn (tùy chọn)" />
+      <button (click)="addTask(g.id, gt, gd)">Thêm task</button>
+    </div>
+
+    @for (t of topTasks(g.id); track t.id) {
+      <ng-container *ngTemplateOutlet="taskTpl; context: { $implicit: t }" />
+    } @empty {
+      <p class="muted" style="margin:.3rem 0 0">Chưa có task. Thêm ở trên ↑</p>
+    }
+  </section>
+}
+
+<!-- Task tự do (không thuộc mục tiêu nào) -->
+<section class="card">
+  <h3>Task tự do</h3>
+  <div class="quick-add">
+    <input #st type="text" placeholder="Thêm task tự do…" (keyup.enter)="addTask(null, st, sd)" />
+    <input #sd type="date" title="Hạn (tùy chọn)" />
+    <button (click)="addTask(null, st, sd)">Thêm</button>
+  </div>
+  @for (t of standaloneTasks(); track t.id) {
+    <ng-container *ngTemplateOutlet="taskTpl; context: { $implicit: t }" />
   } @empty {
-    <p class="muted">Chưa có mục tiêu nào. Đặt mục tiêu và theo dõi tiến độ ở trên ↑</p>
+    <p class="muted">Chưa có task tự do.</p>
   }
 </section>
 
-<!-- Thói quen -->
+<!-- Thói quen (giữ nguyên) -->
 <section class="card">
   <h3>Thói quen</h3>
   <form class="inline-form" [formGroup]="habitForm" (ngSubmit)="addHabit()">
@@ -83,12 +94,11 @@
 
   @for (h of habits(); track h.id) {
     <div class="habit">
-      <button class="check" [class.on]="h.checked" (click)="toggleHabit(h)" title="Check hôm nay">
-        {{ h.checked ? '✓' : '' }}
-      </button>
+      <button class="check" [class.on]="h.checked" (click)="toggleHabit(h)" title="Check hôm nay"
+              [attr.aria-label]="'Check thói quen: ' + h.name">{{ h.checked ? '✓' : '' }}</button>
       <span class="name">{{ h.name }}</span>
       <span class="streak">🔥 {{ h.streak }}</span>
-      <button class="icon-btn" (click)="deleteHabit(h)" title="Xóa">✕</button>
+      <button class="icon-btn danger" (click)="deleteHabit(h)" title="Xóa" aria-label="Xóa thói quen">✕</button>
     </div>
   } @empty {
     <p class="muted">Chưa có thói quen nào. Thêm thói quen để bắt đầu xây chuỗi ngày 🔥</p>
