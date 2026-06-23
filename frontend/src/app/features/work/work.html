@@ -22,8 +22,9 @@
 
   @if (addingSubFor() === t.id) {
     <div class="subadd">
-      <input #si type="text" placeholder="Tên task con…" (keyup.enter)="addSub(t, si)" />
-      <button (click)="addSub(t, si)">Thêm</button>
+      <input #si type="text" placeholder="Tên task con…" (keyup.enter)="addSub(t, si, sdd)" />
+      <input #sdd type="date" title="Hạn (bắt buộc)" />
+      <button (click)="addSub(t, si, sdd)">Thêm</button>
     </div>
   }
 

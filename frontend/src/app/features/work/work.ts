@@ -102,13 +102,16 @@ export class Work implements OnInit {
     });
   }
 
-  /** Thêm sub-task dưới một task. */
-  addSub(parent: TaskItem, titleEl: HTMLInputElement): void {
+  /** Thêm sub-task dưới một task (kèm hạn). */
+  addSub(parent: TaskItem, titleEl: HTMLInputElement, dueEl: HTMLInputElement): void {
     const title = titleEl.value.trim();
     if (!title) return;
-    this.work.createTask({ title, parentTaskId: parent.id }).subscribe({
+    if (!dueEl.value) { this.error.set('Task con cần có ngày hạn (deadline).'); return; }
+    this.error.set(null);
+    this.work.createTask({ title, parentTaskId: parent.id, dueDate: dueEl.value }).subscribe({
       next: () => {
         titleEl.value = '';
+        dueEl.value = '';
         this.addingSubFor.set(null);
         this.reload();
       },
