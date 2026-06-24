@@ -128,16 +128,46 @@ textarea { min-height: 80px; resize: vertical; }
   padding: 1.25rem 1rem;
 }
 .brand { font-size: 1.25rem; font-weight: 700; color: var(--primary); margin-bottom: 1.5rem; }
-.sidebar nav { display: flex; flex-direction: column; gap: .25rem; flex: 1; }
+.sidebar nav { display: flex; flex-direction: column; gap: .25rem; flex: 1; position: relative; }
 .sidebar nav a {
   text-decoration: none;
   color: var(--text);
   padding: .6rem .75rem;
-  border-radius: 8px;
+  border-radius: 12px;
   font-size: .95rem;
+  position: relative;
+  z-index: 1;
+  transition: color .25s ease;
 }
-.sidebar nav a:hover { background: #eef1fb; }
-.sidebar nav a.active { background: var(--primary); color: #fff; }
+.sidebar nav a.active { color: var(--primary); font-weight: 600; }
+
+/* Liquid Glass: viên kính mờ trượt theo mục đang chọn/hover (kiểu iOS 26) */
+.nav-glass {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  border-radius: 12px;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(91, 124, 250, .32), rgba(91, 124, 250, .14));
+  border: 1px solid rgba(255, 255, 255, .35);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, .55),
+    inset 0 -2px 6px rgba(67, 97, 238, .18),
+    0 6px 16px rgba(67, 97, 238, .25);
+  backdrop-filter: blur(10px) saturate(1.6);
+  -webkit-backdrop-filter: blur(10px) saturate(1.6);
+  transition:
+    transform .45s cubic-bezier(.34, 1.56, .64, 1),
+    width .4s cubic-bezier(.34, 1.56, .64, 1),
+    height .4s cubic-bezier(.34, 1.56, .64, 1),
+    opacity .3s ease;
+}
+.nav-glass.show { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+  .nav-glass { transition: opacity .2s ease; }
+}
 .sidebar-footer { border-top: 1px solid var(--border); padding-top: 1rem; }
 .sidebar-footer .who { display: flex; flex-direction: column; margin-bottom: .75rem; }
 .sidebar-footer .who .muted { font-size: .8rem; }
