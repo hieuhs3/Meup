@@ -91,7 +91,9 @@ export class Shell implements OnInit, AfterViewInit {
     // Mỗi lần đổi route → viên kính trượt sang mục active mới.
     this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd), takeUntilDestroyed())
-      .subscribe(() => queueMicrotask(() => this.snapActive()));
+      // setTimeout(0): đợi Angular gán class 'active' mới xong rồi mới trượt kính,
+      // tránh kính bám nhầm mục cũ.
+      .subscribe(() => setTimeout(() => this.snapActive()));
   }
 
   ngOnInit(): void {
@@ -99,7 +101,7 @@ export class Shell implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    queueMicrotask(() => this.snapActive());
+    setTimeout(() => this.snapActive());
   }
 
   /** Hover lên một mục → kính trượt theo. */
