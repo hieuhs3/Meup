@@ -9,6 +9,7 @@ import { Summary } from '../../core/models/finance.models';
 import { HealthLog } from '../../core/models/health.models';
 import { WorkSummary } from '../../core/models/work.models';
 import { CalendarEvent } from '../../core/models/event.models';
+import { MoneyPipe } from '../../core/pipes/money.pipe';
 
 /**
  * F6 — Màn hình trung tâm "Hôm nay": gom Tài chính / Sức khỏe / Công việc
@@ -16,7 +17,7 @@ import { CalendarEvent } from '../../core/models/event.models';
  */
 @Component({
   selector: 'app-today',
-  imports: [RouterLink],
+  imports: [RouterLink, MoneyPipe],
   templateUrl: './today.html',
   styles: [`
     .date-bar { display: flex; align-items: center; gap: .6rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
@@ -84,9 +85,6 @@ export class Today implements OnInit {
 
   // --- Tiện ích ---
 
-  fmt(n: number): string {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
-  }
 
   hm(t: string | null): string {
     return t ? t.slice(0, 5) : '';

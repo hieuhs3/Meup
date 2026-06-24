@@ -20,12 +20,12 @@
   <section class="card">
     <h3>💰 Tài chính</h3>
     <div class="sum-grid">
-      <div class="sum"><div class="label">Tổng thu</div><div class="value income">{{ fmt(d.finance.totalIncome) }}</div></div>
-      <div class="sum"><div class="label">Tổng chi</div><div class="value expense">{{ fmt(d.finance.totalExpense) }}</div></div>
+      <div class="sum"><div class="label">Tổng thu</div><div class="value income">{{ (d.finance.totalIncome | money) }}</div></div>
+      <div class="sum"><div class="label">Tổng chi</div><div class="value expense">{{ (d.finance.totalExpense | money) }}</div></div>
       <div class="sum"><div class="label">Chênh lệch</div>
         <div class="value" [class.income]="d.finance.totalIncome - d.finance.totalExpense >= 0"
              [class.expense]="d.finance.totalIncome - d.finance.totalExpense < 0">
-          {{ fmt(d.finance.totalIncome - d.finance.totalExpense) }}
+          {{ (d.finance.totalIncome - d.finance.totalExpense | money) }}
         </div>
       </div>
     </div>
@@ -34,7 +34,7 @@
       <div class="bar-row">
         <span class="label">{{ c.name }} <small class="muted">({{ c.type === 'income' ? 'thu' : 'chi' }})</small></span>
         <span class="track"><span [style.width.%]="catWidth(c.amount)" [style.background]="c.color || (c.type === 'income' ? 'var(--success)' : 'var(--danger)')"></span></span>
-        <span class="val">{{ fmt(c.amount) }}</span>
+        <span class="val">{{ (c.amount | money) }}</span>
       </div>
     } @empty { <p class="muted">Không có giao dịch trong khoảng này.</p> }
   </section>

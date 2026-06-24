@@ -1,3 +1,4 @@
+using System.Globalization;
 using MeUp.Api.Data;
 using MeUp.Api.Dtos;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,10 @@ namespace MeUp.Api.Services;
 public class DailyReportService : IDailyReportService
 {
     public const int ReportHour = 21; // 21:00 theo múi giờ của user
+
+    private static readonly CultureInfo Vn = CultureInfo.GetCultureInfo("vi-VN");
+    /// <summary>Định dạng tiền VND có dấu "." phân tách nghìn (đồng bộ với frontend), vd 1.000.000đ.</summary>
+    private static string Money(decimal v) => v.ToString("#,##0", Vn) + "đ";
 
     private readonly AppDbContext _db;
     private readonly IStatsService _stats;
@@ -43,7 +48,7 @@ public class DailyReportService : IDailyReportService
 
         // Chống trùng: tạo bản ghi in-app với dedupKey theo ngày. null = đã gửi hôm nay → bỏ qua.
         var summary =
-            $"Thu {stats.Finance.TotalIncome:0}đ · Chi {stats.Finance.TotalExpense:0}đ · " +
+            $"Thu {Money(stats.Finance.TotalIncome)} · Chi {Money(stats.Finance.TotalExpense)} · " +
             $"{stats.Work.TasksDone}/{stats.Work.TasksTotal} việc xong.";
         var note = await _notifications.CreateAsync(
             userId, "report", "Báo cáo cuối ngày", summary, "/app/stats",
@@ -91,9 +96,9 @@ public class DailyReportService : IDailyReportService
 
   <h3 style=""margin:18px 0 6px"">💰 Tài chính</h3>
   <table style=""width:100%;border-collapse:collapse"">
-    {row("Tổng thu", $"{f.TotalIncome:0}đ")}
-    {row("Tổng chi", $"{f.TotalExpense:0}đ")}
-    {row("Chênh lệch", $"{net:0}đ")}
+    {row("Tổng thu", Money(f.TotalIncome))}
+    {row("Tổng chi", Money(f.TotalExpense))}
+    {row("Chênh lệch", Money(net))}
   </table>
 
   <h3 style=""margin:18px 0 6px"">✓ Công việc</h3>

@@ -19,9 +19,9 @@
     <h3>💰 Tài chính</h3>
     @if (finance(); as s) {
       <p class="hint" style="margin:0">Số dư</p>
-      <p class="big" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">{{ fmt(s.balance) }}</p>
+      <p class="big" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">{{ (s.balance | money) }}</p>
       @if (s.dayIncome > 0 || s.dayExpense > 0) {
-        <p class="hint" style="margin:0">Ngày này: <span class="income">+{{ fmt(s.dayIncome) }}</span> · <span class="expense">−{{ fmt(s.dayExpense) }}</span></p>
+        <p class="hint" style="margin:0">Ngày này: <span class="income">+{{ (s.dayIncome | money) }}</span> · <span class="expense">−{{ (s.dayExpense | money) }}</span></p>
       } @else {
         <p class="hint">Chưa có giao dịch ngày này. <span class="pill">Thêm giao dịch →</span></p>
       }

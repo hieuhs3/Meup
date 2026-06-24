@@ -2,10 +2,11 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { StatsService } from '../../core/services/stats.service';
 import { Stats } from '../../core/models/stats.models';
+import { MoneyPipe } from '../../core/pipes/money.pipe';
 
 @Component({
   selector: 'app-stats',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, MoneyPipe],
   templateUrl: './stats.html',
   styles: [`
     .bar-row { display: flex; align-items: center; gap: .6rem; margin: .35rem 0; }
@@ -84,9 +85,6 @@ export class StatsPage implements OnInit {
     return Math.round(((w - min) / (max - min)) * 90 + 10);
   }
 
-  fmt(n: number): string {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
-  }
 
   private monthStart(): string {
     const d = new Date();

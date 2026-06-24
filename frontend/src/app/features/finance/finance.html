@@ -10,23 +10,23 @@
   <div class="sum-grid">
     <div class="sum">
       <div class="label">Số dư hiện tại</div>
-      <div class="value" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">{{ fmt(s.balance) }}</div>
+      <div class="value" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">{{ (s.balance | money) }}</div>
     </div>
     <div class="sum">
       <div class="label">Thu hôm nay</div>
-      <div class="value income">{{ fmt(s.dayIncome) }}</div>
+      <div class="value income">{{ (s.dayIncome | money) }}</div>
     </div>
     <div class="sum">
       <div class="label">Chi hôm nay</div>
-      <div class="value expense">{{ fmt(s.dayExpense) }}</div>
+      <div class="value expense">{{ (s.dayExpense | money) }}</div>
     </div>
     <div class="sum">
       <div class="label">Thu tháng này</div>
-      <div class="value income">{{ fmt(s.monthIncome) }}</div>
+      <div class="value income">{{ (s.monthIncome | money) }}</div>
     </div>
     <div class="sum">
       <div class="label">Chi tháng này</div>
-      <div class="value expense">{{ fmt(s.monthExpense) }}</div>
+      <div class="value expense">{{ (s.monthExpense | money) }}</div>
     </div>
   </div>
 }
@@ -118,7 +118,7 @@
               } @else { <span class="muted">—</span> }
             </td>
             <td>{{ t.note || '—' }}</td>
-            <td class="amount" [class]="t.type">{{ t.type === 'income' ? '+' : '−' }}{{ fmt(t.amount) }}</td>
+            <td class="amount" [class]="t.type">{{ t.type === 'income' ? '+' : '−' }}{{ (t.amount | money) }}</td>
             <td class="actions" style="text-align:right; white-space:nowrap">
               <button class="ghost" (click)="editTransaction(t)">Sửa</button>
               <button class="ghost" (click)="deleteTransaction(t)">Xóa</button>
@@ -162,7 +162,7 @@
       <div class="goal-head">
         <strong><span class="dot" [style.background]="b.categoryColor || '#8d99ae'"></span>{{ b.categoryName }}</strong>
         <span>
-          <span class="muted">{{ fmt(b.spent) }} / {{ fmt(b.amount) }}</span>
+          <span class="muted">{{ (b.spent | money) }} / {{ (b.amount | money) }}</span>
           <button class="icon-btn" (click)="deleteBudget(b)" title="Xóa">✕</button>
         </span>
       </div>
@@ -172,8 +172,8 @@
       </div>
       <p class="muted" style="margin:.2rem 0 0">
         {{ b.percent }}% ·
-        @if (b.remaining >= 0) { còn {{ fmt(b.remaining) }} }
-        @else { <span style="color:var(--danger)">vượt {{ fmt(-b.remaining) }}</span> }
+        @if (b.remaining >= 0) { còn {{ (b.remaining | money) }} }
+        @else { <span style="color:var(--danger)">vượt {{ (-b.remaining | money) }}</span> }
         · sửa hạn mức:
         <input class="inline-input" type="number" [value]="b.amount" (change)="saveBudget(b, $any($event.target).value)" style="width:120px" />
       </p>

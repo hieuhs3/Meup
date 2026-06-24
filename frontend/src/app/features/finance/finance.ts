@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FinanceService } from '../../core/services/finance.service';
 import { AiService } from '../../core/services/ai.service';
 import { ConfirmService } from '../../core/services/confirm.service';
+import { MoneyPipe } from '../../core/pipes/money.pipe';
 import {
   Budget,
   Category,
@@ -14,7 +15,7 @@ import {
 
 @Component({
   selector: 'app-finance',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, MoneyPipe],
   templateUrl: './finance.html',
   styles: [`
     .sum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
@@ -332,9 +333,6 @@ export class Finance implements OnInit {
     this.loadBudgets();
   }
 
-  fmt(n: number): string {
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(n);
-  }
 
   private todayIso(): string {
     const d = new Date();
