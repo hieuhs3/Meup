@@ -9,4 +9,5 @@ public interface IJournalService
     Task<JournalEntryDto> CreateEntryAsync(Guid userId, UpsertJournalRequest request);
     Task<JournalEntryDto?> UpdateEntryAsync(Guid userId, Guid id, UpsertJournalRequest request);
     Task<bool> DeleteEntryAsync(Guid userId, Guid id);
+    Task<IReadOnlyList<MoodTrendPointDto>> GetMoodTrendAsync(Guid userId, DateOnly? from, DateOnly? to);
 }

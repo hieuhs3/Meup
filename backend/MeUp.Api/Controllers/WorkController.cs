@@ -41,6 +41,13 @@ public class WorkController : ControllerBase
         return dto is null ? NotFound() : Ok(dto);
     }
 
+    [HttpPut("tasks/{id:guid}/status")]
+    public async Task<IActionResult> SetTaskStatus(Guid id, SetTaskStatusRequest request)
+    {
+        var dto = await _work.SetStatusAsync(UserId, id, request.Status);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
     [HttpDelete("tasks/{id:guid}")]
     public async Task<IActionResult> DeleteTask(Guid id)
         => await _work.DeleteTaskAsync(UserId, id) ? NoContent() : NotFound();
@@ -48,18 +55,29 @@ public class WorkController : ControllerBase
     // --- Goal ---
 
     [HttpGet("goals")]
-    public async Task<IActionResult> GetGoals()
-        => Ok(await _work.GetGoalsAsync(UserId));
+    public async Task<IActionResult> GetGoals([FromQuery] string? level, [FromQuery] string? status)
+        => Ok(await _work.GetGoalsAsync(UserId, level, status));
+
+    [HttpGet("goals/tree")]
+    public async Task<IActionResult> GetGoalTree()
+        => Ok(await _work.GetGoalTreeAsync(UserId));
 
     [HttpPost("goals")]
     public async Task<IActionResult> CreateGoal(CreateGoalRequest request)
-        => Ok(await _work.CreateGoalAsync(UserId, request));
+    {
+        try { return Ok(await _work.CreateGoalAsync(UserId, request)); }
+        catch (GoalValidationException ex) { return BadRequest(new { error = ex.Message }); }
+    }
 
     [HttpPut("goals/{id:guid}")]
     public async Task<IActionResult> UpdateGoal(Guid id, UpdateGoalRequest request)
     {
-        var dto = await _work.UpdateGoalAsync(UserId, id, request);
-        return dto is null ? NotFound() : Ok(dto);
+        try
+        {
+            var dto = await _work.UpdateGoalAsync(UserId, id, request);
+            return dto is null ? NotFound() : Ok(dto);
+        }
+        catch (GoalValidationException ex) { return BadRequest(new { error = ex.Message }); }
     }
 
     [HttpDelete("goals/{id:guid}")]

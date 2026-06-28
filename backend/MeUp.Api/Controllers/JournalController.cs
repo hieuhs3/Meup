@@ -21,6 +21,10 @@ public class JournalController : ControllerBase
         [FromQuery] DateOnly? from, [FromQuery] DateOnly? to, [FromQuery] string? q)
         => Ok(await _journal.GetEntriesAsync(UserId, from, to, q));
 
+    [HttpGet("mood-trend")]
+    public async Task<IActionResult> GetMoodTrend([FromQuery] DateOnly? from, [FromQuery] DateOnly? to)
+        => Ok(await _journal.GetMoodTrendAsync(UserId, from, to));
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetEntry(Guid id)
     {

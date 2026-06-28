@@ -102,3 +102,52 @@ public record CreateBudgetRequest(
 
 public record UpdateBudgetRequest(
     [Range(0.01, 1_000_000_000_000, ErrorMessage = "Hạn mức phải lớn hơn 0.")] decimal Amount);
+
+// --- Tài sản & Net Worth (G4) ---
+
+public record AssetDto(Guid Id, string Name, string Type, decimal Value, string? Note, DateTime UpdatedAt);
+
+public record CreateAssetRequest(
+    [Required(ErrorMessage = "Tên tài sản là bắt buộc.")]
+    [MaxLength(150, ErrorMessage = "Tên tài sản tối đa 150 ký tự.")]
+    string Name,
+
+    [Required(ErrorMessage = "Loại là bắt buộc.")]
+    [RegularExpression("cash|bank|stock|crypto|gold|other", ErrorMessage = "Loại tài sản không hợp lệ.")]
+    string Type,
+
+    [Range(0, 1_000_000_000_000, ErrorMessage = "Giá trị không hợp lệ.")]
+    decimal Value,
+
+    [MaxLength(500, ErrorMessage = "Ghi chú tối đa 500 ký tự.")]
+    string? Note);
+
+public record UpdateAssetRequest(
+    [Required(ErrorMessage = "Tên tài sản là bắt buộc.")]
+    [MaxLength(150, ErrorMessage = "Tên tài sản tối đa 150 ký tự.")]
+    string Name,
+
+    [Required(ErrorMessage = "Loại là bắt buộc.")]
+    [RegularExpression("cash|bank|stock|crypto|gold|other", ErrorMessage = "Loại tài sản không hợp lệ.")]
+    string Type,
+
+    [Range(0, 1_000_000_000_000, ErrorMessage = "Giá trị không hợp lệ.")]
+    decimal Value,
+
+    [MaxLength(500, ErrorMessage = "Ghi chú tối đa 500 ký tự.")]
+    string? Note);
+
+/// <summary>Tổng giá trị tài sản theo loại.</summary>
+public record AssetGroupDto(string Type, decimal Total);
+
+/// <summary>Dòng tiền 1 tháng (yyyy-MM).</summary>
+public record CashFlowPointDto(string Month, decimal Income, decimal Expense, decimal Net);
+
+/// <summary>Báo cáo Net Worth + Saving Rate + Cash Flow cho tháng tham chiếu.</summary>
+public record NetWorthDto(
+    decimal NetWorth,
+    IReadOnlyList<AssetGroupDto> ByType,
+    decimal MonthIncome,
+    decimal MonthExpense,
+    int SavingRate,
+    IReadOnlyList<CashFlowPointDto> CashFlow);

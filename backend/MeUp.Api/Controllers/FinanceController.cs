@@ -105,4 +105,29 @@ public class FinanceController : ControllerBase
     [HttpDelete("budgets/{id:guid}")]
     public async Task<IActionResult> DeleteBudget(Guid id)
         => await _finance.DeleteBudgetAsync(UserId, id) ? NoContent() : NotFound();
+
+    // --- Tài sản & Net Worth (G4) ---
+
+    [HttpGet("assets")]
+    public async Task<IActionResult> GetAssets()
+        => Ok(await _finance.GetAssetsAsync(UserId));
+
+    [HttpPost("assets")]
+    public async Task<IActionResult> CreateAsset(CreateAssetRequest request)
+        => Ok(await _finance.CreateAssetAsync(UserId, request));
+
+    [HttpPut("assets/{id:guid}")]
+    public async Task<IActionResult> UpdateAsset(Guid id, UpdateAssetRequest request)
+    {
+        var dto = await _finance.UpdateAssetAsync(UserId, id, request);
+        return dto is null ? NotFound() : Ok(dto);
+    }
+
+    [HttpDelete("assets/{id:guid}")]
+    public async Task<IActionResult> DeleteAsset(Guid id)
+        => await _finance.DeleteAssetAsync(UserId, id) ? NoContent() : NotFound();
+
+    [HttpGet("networth")]
+    public async Task<IActionResult> GetNetWorth([FromQuery] DateOnly? month)
+        => Ok(await _finance.GetNetWorthAsync(UserId, month ?? DateOnly.FromDateTime(DateTime.UtcNow)));
 }

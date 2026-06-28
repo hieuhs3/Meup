@@ -17,7 +17,8 @@ public class NotesController : ControllerBase
     private Guid UserId => User.GetUserId();
 
     [HttpGet]
-    public async Task<IActionResult> GetNotes() => Ok(await _notes.GetNotesAsync(UserId));
+    public async Task<IActionResult> GetNotes([FromQuery] string? tag, [FromQuery] string? category, [FromQuery] string? q)
+        => Ok(await _notes.GetNotesAsync(UserId, tag, category, q));
 
     [HttpPost]
     public async Task<IActionResult> CreateNote(UpsertNoteRequest request)

@@ -12,7 +12,7 @@ public class JournalService : IJournalService
     public JournalService(AppDbContext db) => _db = db;
 
     private static JournalEntryDto ToDto(JournalEntry e) =>
-        new(e.Id, e.Date, e.Title, e.ContentHtml, e.CreatedAt, e.UpdatedAt);
+        new(e.Id, e.Date, e.Title, e.ContentHtml, e.Mood, e.CreatedAt, e.UpdatedAt);
 
     public async Task<IReadOnlyList<JournalEntryDto>> GetEntriesAsync(Guid userId, DateOnly? from, DateOnly? to, string? q)
     {
@@ -50,6 +50,7 @@ public class JournalService : IJournalService
             Date = request.Date,
             Title = string.IsNullOrWhiteSpace(request.Title) ? null : request.Title.Trim(),
             ContentHtml = request.ContentHtml ?? string.Empty,
+            Mood = Mood.Normalize(request.Mood),
             CreatedAt = now,
             UpdatedAt = now,
         };
@@ -66,6 +67,7 @@ public class JournalService : IJournalService
         entry.Date = request.Date;
         entry.Title = string.IsNullOrWhiteSpace(request.Title) ? null : request.Title.Trim();
         entry.ContentHtml = request.ContentHtml ?? string.Empty;
+        entry.Mood = Mood.Normalize(request.Mood);
         entry.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         return ToDto(entry);
@@ -79,5 +81,21 @@ public class JournalService : IJournalService
         _db.JournalEntries.Remove(entry);
         await _db.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<IReadOnlyList<MoodTrendPointDto>> GetMoodTrendAsync(Guid userId, DateOnly? from, DateOnly? to)
+    {
+        var query = _db.JournalEntries.Where(e => e.UserId == userId && e.Mood != null);
+        if (from is not null) query = query.Where(e => e.Date >= from);
+        if (to is not null) query = query.Where(e => e.Date <= to);
+
+        var rows = await query
+            .OrderBy(e => e.Date)
+            .Select(e => new { e.Date, e.Mood })
+            .ToListAsync();
+
+        return rows
+            .Select(r => new MoodTrendPointDto(r.Date, r.Mood!, Mood.Score(r.Mood!)))
+            .ToList();
     }
 }

@@ -35,4 +35,11 @@ public interface IFinanceService
     Task<FinanceResult<BudgetDto>> CreateBudgetAsync(Guid userId, CreateBudgetRequest request, DateOnly month);
     Task<BudgetDto?> UpdateBudgetAsync(Guid userId, Guid id, UpdateBudgetRequest request, DateOnly month);
     Task<bool> DeleteBudgetAsync(Guid userId, Guid id);
+
+    // Tài sản & Net Worth (G4)
+    Task<IReadOnlyList<AssetDto>> GetAssetsAsync(Guid userId);
+    Task<AssetDto> CreateAssetAsync(Guid userId, CreateAssetRequest request);
+    Task<AssetDto?> UpdateAssetAsync(Guid userId, Guid id, UpdateAssetRequest request);
+    Task<bool> DeleteAssetAsync(Guid userId, Guid id);
+    Task<NetWorthDto> GetNetWorthAsync(Guid userId, DateOnly month);
 }

@@ -9,10 +9,12 @@ public interface IWorkService
     Task<TaskDto> CreateTaskAsync(Guid userId, CreateTaskRequest request);
     Task<TaskDto?> UpdateTaskAsync(Guid userId, Guid id, UpdateTaskRequest request);
     Task<TaskDto?> ToggleTaskAsync(Guid userId, Guid id);
+    Task<TaskDto?> SetStatusAsync(Guid userId, Guid id, string status);
     Task<bool> DeleteTaskAsync(Guid userId, Guid id);
 
     // Goal
-    Task<IReadOnlyList<GoalDto>> GetGoalsAsync(Guid userId);
+    Task<IReadOnlyList<GoalDto>> GetGoalsAsync(Guid userId, string? level = null, string? status = null);
+    Task<IReadOnlyList<GoalTreeNodeDto>> GetGoalTreeAsync(Guid userId);
     Task<GoalDto> CreateGoalAsync(Guid userId, CreateGoalRequest request);
     Task<GoalDto?> UpdateGoalAsync(Guid userId, Guid id, UpdateGoalRequest request);
     Task<bool> DeleteGoalAsync(Guid userId, Guid id);

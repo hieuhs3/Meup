@@ -315,4 +315,100 @@ public class FinanceService : IFinanceService
         return new BudgetDto(b.Id, b.CategoryId, b.Category?.Name ?? "", b.Category?.Color,
             b.Amount, spent, b.Amount - spent, percent);
     }
+
+    // --- Tài sản & Net Worth (G4) ---
+
+    private static AssetDto ToAssetDto(Asset a) =>
+        new(a.Id, a.Name, a.Type, a.Value, a.Note, a.UpdatedAt);
+
+    public async Task<IReadOnlyList<AssetDto>> GetAssetsAsync(Guid userId)
+    {
+        return await _db.Assets
+            .Where(a => a.UserId == userId)
+            .OrderBy(a => a.Type).ThenByDescending(a => a.Value)
+            .Select(a => ToAssetDto(a))
+            .ToListAsync();
+    }
+
+    public async Task<AssetDto> CreateAssetAsync(Guid userId, CreateAssetRequest request)
+    {
+        var now = DateTime.UtcNow;
+        var asset = new Asset
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Name = request.Name.Trim(),
+            Type = AssetType.Normalize(request.Type),
+            Value = request.Value,
+            Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        _db.Assets.Add(asset);
+        await _db.SaveChangesAsync();
+        return ToAssetDto(asset);
+    }
+
+    public async Task<AssetDto?> UpdateAssetAsync(Guid userId, Guid id, UpdateAssetRequest request)
+    {
+        var asset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
+        if (asset is null) return null;
+
+        asset.Name = request.Name.Trim();
+        asset.Type = AssetType.Normalize(request.Type);
+        asset.Value = request.Value;
+        asset.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        asset.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        return ToAssetDto(asset);
+    }
+
+    public async Task<bool> DeleteAssetAsync(Guid userId, Guid id)
+    {
+        var asset = await _db.Assets.FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
+        if (asset is null) return false;
+        _db.Assets.Remove(asset);
+        await _db.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<NetWorthDto> GetNetWorthAsync(Guid userId, DateOnly month)
+    {
+        // Net Worth = tổng giá trị tài sản, gộp theo loại.
+        var byType = (await _db.Assets
+                .Where(a => a.UserId == userId)
+                .GroupBy(a => a.Type)
+                .Select(g => new AssetGroupDto(g.Key, g.Sum(x => x.Value)))
+                .ToListAsync())
+            .OrderByDescending(g => g.Total)
+            .ToList();
+        var netWorth = byType.Sum(g => g.Total);
+
+        // Cash Flow 6 tháng gần nhất (gồm tháng tham chiếu); Saving Rate theo tháng tham chiếu.
+        var (refStart, _) = MonthRange(month);
+        var firstStart = refStart.AddMonths(-5);
+        var windowEnd = refStart.AddMonths(1).AddDays(-1);
+
+        var txs = await _db.Transactions
+            .Where(t => t.UserId == userId && t.Date >= firstStart && t.Date <= windowEnd)
+            .Select(t => new { t.Type, t.Amount, t.Date })
+            .ToListAsync();
+
+        var cashFlow = new List<CashFlowPointDto>();
+        for (var i = 0; i < 6; i++)
+        {
+            var mStart = firstStart.AddMonths(i);
+            var mEnd = mStart.AddMonths(1).AddDays(-1);
+            var inc = txs.Where(t => t.Type == FinanceType.Income && t.Date >= mStart && t.Date <= mEnd).Sum(t => t.Amount);
+            var exp = txs.Where(t => t.Type == FinanceType.Expense && t.Date >= mStart && t.Date <= mEnd).Sum(t => t.Amount);
+            cashFlow.Add(new CashFlowPointDto($"{mStart.Year:D4}-{mStart.Month:D2}", inc, exp, inc - exp));
+        }
+
+        var refMonth = cashFlow[^1]; // tháng tham chiếu là phần tử cuối
+        var savingRate = refMonth.Income > 0
+            ? (int)Math.Round((refMonth.Income - refMonth.Expense) / refMonth.Income * 100)
+            : 0;
+
+        return new NetWorthDto(netWorth, byType, refMonth.Income, refMonth.Expense, savingRate, cashFlow);
+    }
 }
