@@ -2,7 +2,15 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE } from '../api.config';
-import { HealthLog, HealthSummary, Medication, UpsertHealthLogRequest } from '../models/health.models';
+import {
+  Activity,
+  HealthLog,
+  HealthSummary,
+  HealthTrend,
+  Medication,
+  SaveActivityRequest,
+  UpsertHealthLogRequest,
+} from '../models/health.models';
 
 @Injectable({ providedIn: 'root' })
 export class HealthService {
@@ -32,6 +40,30 @@ export class HealthService {
     let params = new HttpParams();
     if (date) params = params.set('date', date);
     return this.http.get<HealthSummary>(`${this.base}/summary`, { params });
+  }
+
+  // --- Hoạt động & xu hướng (G5) ---
+
+  getActivities(from?: string, to?: string): Observable<Activity[]> {
+    let params = new HttpParams();
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+    return this.http.get<Activity[]>(`${this.base}/activities`, { params });
+  }
+
+  createActivity(body: SaveActivityRequest): Observable<Activity> {
+    return this.http.post<Activity>(`${this.base}/activities`, body);
+  }
+
+  deleteActivity(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/activities/${id}`);
+  }
+
+  getTrends(from?: string, to?: string): Observable<HealthTrend> {
+    let params = new HttpParams();
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+    return this.http.get<HealthTrend>(`${this.base}/trends`, { params });
   }
 
   // --- Thuốc (A2) ---

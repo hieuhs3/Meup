@@ -3,7 +3,25 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { WorkService } from '../../core/services/work.service';
 import { ConfirmService } from '../../core/services/confirm.service';
-import { Goal, Habit, Recurrence, TaskItem } from '../../core/models/work.models';
+import {
+  GOAL_LEVEL_LABELS,
+  GOAL_LEVELS,
+  GOAL_STATUS_LABELS,
+  GOAL_STATUSES,
+  Goal,
+  GoalLevel,
+  GoalStatus,
+  Habit,
+  HabitFrequency,
+  Recurrence,
+  SaveGoalRequest,
+  SaveHabitRequest,
+  TaskItem,
+  WORK_TASK_STATUS_LABELS,
+  WORK_TASK_STATUSES,
+  WorkTaskStatus,
+  goalLevelOrdinal,
+} from '../../core/models/work.models';
 
 @Component({
   selector: 'app-work',
@@ -33,6 +51,32 @@ import { Goal, Habit, Recurrence, TaskItem } from '../../core/models/work.models
     .check { width: 34px; height: 34px; border-radius: 50%; padding: 0; background: #eef1fb; color: var(--primary); border: 1px solid var(--border); }
     .check.on { background: var(--success); color: #fff; border-color: var(--success); }
     .streak { font-size: .85rem; color: var(--muted); min-width: 54px; }
+    .habit-block { padding: .55rem 0; border-bottom: 1px solid var(--border); }
+    .habit-stats { display: flex; gap: 1rem; font-size: .76rem; color: var(--muted); margin: .25rem 0 .35rem; flex-wrap: wrap; }
+    .heat { display: grid; grid-template-rows: repeat(7, 11px); grid-auto-flow: column; grid-auto-columns: 11px; gap: 2px; }
+    .heat .c { width: 11px; height: 11px; border-radius: 2px; background: #eef1fb; }
+    .heat .c.on { background: var(--success); }
+    .view-toggle { display: flex; gap: .4rem; margin-bottom: 1rem; }
+    .view-toggle button.on { background: var(--primary); color: #fff; }
+    .kanban { display: flex; gap: .7rem; overflow-x: auto; padding-bottom: .5rem; }
+    .kcol { flex: 0 0 220px; background: #f6f7fb; border: 1px solid var(--border); border-radius: 10px; padding: .6rem; }
+    .kcol h4 { margin: 0 0 .5rem; font-size: .85rem; display: flex; justify-content: space-between; }
+    .kcard { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: .5rem .6rem; margin-bottom: .5rem; }
+    .kcard .t { font-size: .9rem; }
+    .kcard .due { font-size: .72rem; }
+    .kcard select { width: 100%; margin: .35rem 0 0; padding: .15rem; font-size: .75rem; }
+    .goal-node.dim { opacity: .6; }
+    .goal-children { margin-left: 1.2rem; border-left: 2px dashed var(--border); padding-left: .9rem; margin-top: .6rem; }
+    .desc { margin: .15rem 0 .35rem; font-size: .88rem; }
+    .target { font-size: .8rem; font-weight: 400; margin-left: .3rem; }
+    .status-sel { width: auto; margin: 0; padding: .15rem .4rem; font-size: .8rem; }
+    .badge { display: inline-block; font-size: .72rem; font-weight: 600; padding: .08rem .45rem; border-radius: 999px; margin-left: .35rem; vertical-align: middle; }
+    .badge.lvl { background: #eef1fb; color: var(--primary); }
+    .badge.st-draft { background: #f1f1f4; color: #555; }
+    .badge.st-active { background: #e3f3ff; color: #0b6bcb; }
+    .badge.st-completed { background: #e7f7ec; color: #1a7f37; }
+    .badge.st-cancelled { background: #fdeaea; color: #b42318; }
+    .badge.st-archived { background: #f0eef9; color: #6b4eaa; }
   `],
 })
 export class Work implements OnInit {
@@ -54,12 +98,45 @@ export class Work implements OnInit {
     return this.recurrenceLabels[r as Recurrence] ?? '';
   }
 
+  // --- Mục tiêu đa cấp (G1) ---
+  readonly levels = GOAL_LEVELS;
+  readonly statuses = GOAL_STATUSES;
+  levelLabel(l: string): string { return GOAL_LEVEL_LABELS[l as GoalLevel] ?? l; }
+  statusLabel(s: string): string { return GOAL_STATUS_LABELS[s as GoalStatus] ?? s; }
+
   readonly goalForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
+    level: ['year' as GoalLevel, [Validators.required]],
+    status: ['active' as GoalStatus, [Validators.required]],
+    parentGoalId: ['' as string],
+    targetDate: ['' as string],
+    description: ['' as string, [Validators.maxLength(1000)]],
   });
   readonly habitForm = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(150)]],
+    frequency: ['daily' as HabitFrequency],
+    targetPerWeek: [null as number | null],
   });
+
+  /** Lưới heatmap 12 tuần gần nhất (84 ô, xếp theo cột tuần). */
+  heatCells(h: Habit): { date: string; on: boolean }[] {
+    const set = new Set(h.recentChecks);
+    const cells: { date: string; on: boolean }[] = [];
+    const today = new Date();
+    for (let i = 83; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      cells.push({ date: iso, on: set.has(iso) });
+    }
+    return cells;
+  }
+
+  /** Mục tiêu hợp lệ làm cha cho cấp đang chọn ở form (cấp cao hơn). */
+  parentOptions(): Goal[] {
+    const lvl = this.goalForm.controls.level.value;
+    return this.goals().filter((g) => goalLevelOrdinal(g.level) < goalLevelOrdinal(lvl));
+  }
 
   ngOnInit(): void {
     this.loadTasks();
@@ -77,6 +154,26 @@ export class Work implements OnInit {
   }
   standaloneTasks(): TaskItem[] {
     return this.tasks().filter((t) => !t.goalId && !t.parentTaskId);
+  }
+
+  // --- Kanban (G11) ---
+  readonly view = signal<'tree' | 'kanban'>('tree');
+  readonly kanbanStatuses = WORK_TASK_STATUSES;
+  statusLabelTask(s: string): string { return WORK_TASK_STATUS_LABELS[s as WorkTaskStatus] ?? s; }
+  tasksByStatus(status: WorkTaskStatus): TaskItem[] {
+    return this.tasks().filter((t) => t.status === status);
+  }
+  setTaskStatus(t: TaskItem, status: string): void {
+    if (status === t.status) return;
+    this.work.setTaskStatus(t.id, status).subscribe({ next: () => this.reload() });
+  }
+
+  // Cây mục tiêu (dựng từ danh sách phẳng)
+  rootGoals(): Goal[] {
+    return this.goals().filter((g) => !g.parentGoalId);
+  }
+  childGoals(parentId: string): Goal[] {
+    return this.goals().filter((g) => g.parentGoalId === parentId);
   }
 
   // --- Task ---
@@ -149,17 +246,48 @@ export class Work implements OnInit {
 
   addGoal(): void {
     if (this.goalForm.invalid) return;
-    this.work.createGoal(this.goalForm.getRawValue().name).subscribe({
+    const v = this.goalForm.getRawValue();
+    const body: SaveGoalRequest = {
+      name: v.name,
+      level: v.level,
+      status: v.status,
+      parentGoalId: v.parentGoalId || null,
+      targetDate: v.targetDate || null,
+      description: v.description || null,
+    };
+    this.work.createGoal(body).subscribe({
       next: () => {
-        this.goalForm.reset({ name: '' });
+        this.goalForm.reset({ name: '', level: 'year', status: 'active', parentGoalId: '', targetDate: '', description: '' });
         this.loadGoals();
       },
       error: (err) => this.error.set(err?.error?.error ?? 'Thêm mục tiêu thất bại.'),
     });
   }
 
+  /** Mở form thêm mục tiêu con: gắn cha + chọn cấp ngay dưới cha. */
+  startAddChild(parent: Goal): void {
+    const idx = goalLevelOrdinal(parent.level);
+    const childLevel = this.levels[Math.min(idx + 1, this.levels.length - 1)];
+    this.goalForm.patchValue({ parentGoalId: parent.id, level: childLevel });
+    document.getElementById('goal-form')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  /** Đổi nhanh trạng thái mục tiêu (giữ các trường còn lại). */
+  changeStatus(g: Goal, status: GoalStatus): void {
+    this.work.updateGoal(g.id, {
+      name: g.name, level: g.level, status,
+      description: g.description, targetDate: g.targetDate, parentGoalId: g.parentGoalId,
+    }).subscribe({
+      next: () => this.reload(),
+      error: (err) => this.error.set(err?.error?.error ?? 'Cập nhật trạng thái thất bại.'),
+    });
+  }
+
   async deleteGoal(g: Goal): Promise<void> {
-    if (!(await this.confirm.ask(`Xóa mục tiêu "${g.name}" và toàn bộ task bên trong?`))) return;
+    const msg = g.childCount
+      ? `Xóa mục tiêu "${g.name}", toàn bộ mục tiêu con và task bên trong?`
+      : `Xóa mục tiêu "${g.name}" và toàn bộ task bên trong?`;
+    if (!(await this.confirm.ask(msg))) return;
     this.work.deleteGoal(g.id).subscribe({ next: () => this.reload() });
   }
 
@@ -171,9 +299,15 @@ export class Work implements OnInit {
 
   addHabit(): void {
     if (this.habitForm.invalid) return;
-    this.work.createHabit(this.habitForm.getRawValue().name).subscribe({
+    const v = this.habitForm.getRawValue();
+    const body: SaveHabitRequest = {
+      name: v.name,
+      frequency: v.frequency,
+      targetPerWeek: v.frequency === 'weekly' ? v.targetPerWeek : null,
+    };
+    this.work.createHabit(body).subscribe({
       next: () => {
-        this.habitForm.reset({ name: '' });
+        this.habitForm.reset({ name: '', frequency: 'daily', targetPerWeek: null });
         this.loadHabits();
       },
       error: (err) => this.error.set(err?.error?.error ?? 'Thêm thói quen thất bại.'),

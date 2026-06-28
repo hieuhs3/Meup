@@ -42,6 +42,9 @@
       <label>Cân nặng (kg)
         <input type="number" formControlName="weight" min="0" max="500" step="0.1" />
       </label>
+      <label>Chiều cao (cm)
+        <input type="number" formControlName="heightCm" min="0" max="300" step="0.5" />
+      </label>
       <label>Giờ ngủ
         <input type="number" formControlName="sleepHours" min="0" max="24" step="0.5" />
       </label>
@@ -88,25 +91,82 @@
   }
 </section>
 
+<!-- Hoạt động thể chất (G5) -->
+<section class="card">
+  <h3>Hoạt động ngày {{ date() }}</h3>
+  <form class="row" [formGroup]="activityForm" (ngSubmit)="addActivity()">
+    <label>Loại
+      <select formControlName="type">
+        @for (t of activityTypes; track t) { <option [value]="t">{{ activityLabel(t) }}</option> }
+      </select>
+    </label>
+    <label>Thời lượng (phút) <input type="number" formControlName="durationMin" min="1" max="1440" /></label>
+    <label>Calo <input type="number" formControlName="calories" min="0" /></label>
+    <label style="flex:1">Ghi chú <input type="text" formControlName="note" maxlength="500" /></label>
+    <button type="submit" [disabled]="activityForm.invalid">Thêm</button>
+  </form>
+
+  @for (a of activities(); track a.id) {
+    <div class="habit">
+      <span class="name"><b>{{ activityLabel(a.type) }}</b> · {{ a.durationMin }} phút
+        @if (a.calories) { · {{ a.calories }} cal } @if (a.note) { <small class="muted"> · {{ a.note }}</small> }
+      </span>
+      <button class="icon-btn" (click)="deleteActivity(a)" title="Xóa">✕</button>
+    </div>
+  } @empty {
+    <p class="muted">Chưa có hoạt động nào hôm nay.</p>
+  }
+</section>
+
+<!-- Xu hướng 30 ngày (G5) -->
+@if (trend(); as tr) {
+  @if (tr.weight.length || tr.calories.length) {
+    <section class="card">
+      <h3>Xu hướng 30 ngày</h3>
+      @if (tr.weight.length) {
+        <h4 style="margin:.4rem 0 .2rem">Cân nặng (kg)</h4>
+        <div class="trend-row">
+          @for (p of tr.weight; track p.date) {
+            <div class="tcol" [title]="p.date + ': ' + p.value + ' kg'">
+              <span class="tb w" [style.height.px]="(p.value || 0) * 1.2"></span>
+            </div>
+          }
+        </div>
+      }
+      @if (tr.calories.length) {
+        <h4 style="margin:.6rem 0 .2rem">Calo tiêu hao</h4>
+        <div class="trend-row">
+          @for (p of tr.calories; track p.date) {
+            <div class="tcol" [title]="p.date + ': ' + p.value + ' cal'">
+              <span class="tb c" [style.height.px]="(p.value || 0) / 15"></span>
+            </div>
+          }
+        </div>
+      }
+    </section>
+  }
+}
+
 <!-- Lịch sử gần đây -->
 <section class="card">
   <h3>Lịch sử gần đây</h3>
   <table class="table">
     <thead>
-      <tr><th>Ngày</th><th>Cân nặng</th><th>Giờ ngủ</th><th>Nước</th><th>Tập</th><th>Ghi chú</th></tr>
+      <tr><th>Ngày</th><th>Cân nặng</th><th>BMI</th><th>Giờ ngủ</th><th>Nước</th><th>Tập</th><th>Ghi chú</th></tr>
     </thead>
     <tbody>
       @for (l of history(); track l.date) {
         <tr>
           <td>{{ l.date }}</td>
           <td>{{ l.weight ?? '—' }}</td>
+          <td>{{ l.bmi ?? '—' }}</td>
           <td>{{ l.sleepHours ?? '—' }}</td>
           <td>{{ l.waterMl ?? '—' }}</td>
           <td>{{ l.workoutMinutes ?? '—' }}</td>
           <td>{{ l.note || '—' }}</td>
         </tr>
       } @empty {
-        <tr><td colspan="6" class="muted" style="text-align:center; padding:1.5rem">Chưa có nhật ký nào.</td></tr>
+        <tr><td colspan="7" class="muted" style="text-align:center; padding:1.5rem">Chưa có nhật ký nào.</td></tr>
       }
     </tbody>
   </table>

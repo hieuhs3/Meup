@@ -217,3 +217,69 @@
     }
   </div>
 </section>
+
+<!-- Tài sản & Net Worth (G4) -->
+<section class="card">
+  <h3>Tài sản & Tài sản ròng (Net Worth)</h3>
+
+  @if (netWorth(); as nw) {
+    <div class="sum-grid">
+      <div class="sum"><div class="label">Tài sản ròng</div><div class="value">{{ nw.netWorth | money }}</div></div>
+      <div class="sum"><div class="label">Thu tháng này</div><div class="value income">{{ nw.monthIncome | money }}</div></div>
+      <div class="sum"><div class="label">Chi tháng này</div><div class="value expense">{{ nw.monthExpense | money }}</div></div>
+      <div class="sum"><div class="label">Tỷ lệ tiết kiệm</div><div class="value">{{ nw.savingRate }}%</div></div>
+    </div>
+
+    @if (nw.byType.length) {
+      <div class="nw-grid">
+        @for (g of nw.byType; track g.type) {
+          <div class="g"><b>{{ assetTypeLabel(g.type) }}</b>{{ g.total | money }}</div>
+        }
+      </div>
+    }
+
+    <h4 style="margin:.8rem 0 .2rem">Dòng tiền 6 tháng</h4>
+    <div class="flow">
+      @for (p of nw.cashFlow; track p.month) {
+        <div class="col" [title]="p.month + ' · thu ' + (p.income | money) + ' · chi ' + (p.expense | money)">
+          <div class="bars">
+            <span class="inc" [style.height.px]="p.income > 0 ? 6 + p.income / 200000 : 0"></span>
+            <span class="exp" [style.height.px]="p.expense > 0 ? 6 + p.expense / 200000 : 0"></span>
+          </div>
+          <span class="m">{{ p.month.slice(5) }}</span>
+        </div>
+      }
+    </div>
+  }
+
+  <h4 style="margin:1rem 0 .2rem">{{ editingAssetId() ? 'Sửa tài sản' : 'Thêm tài sản' }}</h4>
+  <form [formGroup]="assetForm" (ngSubmit)="submitAsset()">
+    <div class="row">
+      <label>Tên <input type="text" formControlName="name" maxlength="150" /></label>
+      <label>Loại
+        <select formControlName="type">
+          @for (t of assetTypes; track t) { <option [value]="t">{{ assetTypeLabel(t) }}</option> }
+        </select>
+      </label>
+      <label>Giá trị <input type="number" formControlName="value" min="0" step="1000" /></label>
+      <label style="flex:2">Ghi chú <input type="text" formControlName="note" maxlength="500" /></label>
+      <button type="submit" [disabled]="assetForm.invalid">{{ editingAssetId() ? 'Lưu' : 'Thêm' }}</button>
+      @if (editingAssetId()) { <button type="button" class="ghost" (click)="resetAssetForm()">Hủy</button> }
+    </div>
+  </form>
+  @if (assetMsg()) { <p class="success">{{ assetMsg() }}</p> }
+
+  @for (a of assets(); track a.id) {
+    <div class="asset-row">
+      <span class="ty">{{ assetTypeLabel(a.type) }}</span>
+      <span class="nm">{{ a.name }}@if (a.note) { <small class="muted"> · {{ a.note }}</small> }</span>
+      <span class="amount">{{ a.value | money }}</span>
+      <span class="actions">
+        <button class="ghost" (click)="editAsset(a)">Sửa</button>
+        <button class="ghost" (click)="deleteAsset(a)">Xóa</button>
+      </span>
+    </div>
+  } @empty {
+    <p class="muted">Chưa có tài sản nào. Thêm tài sản để theo dõi tài sản ròng.</p>
+  }
+</section>

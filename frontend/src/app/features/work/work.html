@@ -5,6 +5,35 @@
 
 @if (error()) { <p class="error">{{ error() }}</p> }
 
+<div class="view-toggle">
+  <button [class.on]="view() === 'tree'" (click)="view.set('tree')">🌳 Cây mục tiêu</button>
+  <button [class.on]="view() === 'kanban'" (click)="view.set('kanban')">📋 Bảng Kanban</button>
+</div>
+
+@if (view() === 'kanban') {
+  <section class="card">
+    <h3>Bảng Kanban</h3>
+    <div class="kanban">
+      @for (st of kanbanStatuses; track st) {
+        <div class="kcol">
+          <h4>{{ statusLabelTask(st) }} <span class="muted">{{ tasksByStatus(st).length }}</span></h4>
+          @for (t of tasksByStatus(st); track t.id) {
+            <div class="kcard">
+              <div class="t">{{ t.title }}</div>
+              @if (t.dueDate) { <span class="due" [class.overdue]="t.isOverdue">hạn {{ t.dueDate }}</span> }
+              <select [value]="t.status" (change)="setTaskStatus(t, $any($event.target).value)" aria-label="Đổi trạng thái">
+                @for (s of kanbanStatuses; track s) { <option [value]="s">{{ statusLabelTask(s) }}</option> }
+              </select>
+            </div>
+          } @empty {
+            <p class="muted" style="font-size:.8rem">—</p>
+          }
+        </div>
+      }
+    </div>
+  </section>
+}
+
 <!-- Mẫu đệ quy: render 1 task + các task con -->
 <ng-template #taskTpl let-t>
   <div class="item">
@@ -35,25 +64,27 @@
   }
 </ng-template>
 
-<!-- Tạo mục tiêu -->
-<section class="card">
-  <h3>Mục tiêu mới</h3>
-  <form class="inline-form" [formGroup]="goalForm" (ngSubmit)="addGoal()">
-    <label class="grow">Tên mục tiêu <input type="text" formControlName="name" maxlength="150" /></label>
-    <button type="submit" [disabled]="goalForm.invalid">Thêm mục tiêu</button>
-  </form>
-</section>
-
-<!-- Cây mục tiêu -->
-@for (g of goals(); track g.id) {
-  <section class="card">
+<!-- Mẫu đệ quy: render 1 mục tiêu + mục tiêu con -->
+<ng-template #goalTpl let-g>
+  <div class="goal-node" [class.dim]="g.status === 'cancelled' || g.status === 'archived'">
     <div class="goal-head">
-      <strong>🎯 {{ g.name }}</strong>
-      <span style="display:flex;align-items:center;gap:.6rem">
+      <strong>
+        🎯 {{ g.name }}
+        <span class="badge lvl">{{ levelLabel(g.level) }}</span>
+        <span class="badge st-{{ g.status }}">{{ statusLabel(g.status) }}</span>
+        @if (g.targetDate) { <span class="muted target">📅 {{ g.targetDate }}</span> }
+      </strong>
+      <span style="display:flex;align-items:center;gap:.5rem">
         <span class="muted">{{ g.doneCount }}/{{ g.taskCount }} · {{ g.progress }}%</span>
+        <select class="status-sel" [value]="g.status" (change)="changeStatus(g, $any($event.target).value)"
+                title="Đổi trạng thái" aria-label="Đổi trạng thái mục tiêu">
+          @for (s of statuses; track s) { <option [value]="s">{{ statusLabel(s) }}</option> }
+        </select>
+        <button class="icon-btn" (click)="startAddChild(g)" title="Thêm mục tiêu con" aria-label="Thêm mục tiêu con">＋🎯</button>
         <button class="icon-btn danger" (click)="deleteGoal(g)" title="Xóa mục tiêu" aria-label="Xóa mục tiêu">✕</button>
       </span>
     </div>
+    @if (g.description) { <p class="muted desc">{{ g.description }}</p> }
     <div class="bar"><span [style.width.%]="g.progress"></span></div>
 
     <div class="quick-add">
@@ -64,10 +95,56 @@
 
     @for (t of topTasks(g.id); track t.id) {
       <ng-container *ngTemplateOutlet="taskTpl; context: { $implicit: t }" />
-    } @empty {
-      <p class="muted" style="margin:.3rem 0 0">Chưa có task. Thêm ở trên ↑</p>
     }
+
+    @for (cg of childGoals(g.id); track cg.id) {
+      <div class="goal-children">
+        <ng-container *ngTemplateOutlet="goalTpl; context: { $implicit: cg }" />
+      </div>
+    }
+  </div>
+</ng-template>
+
+<!-- Tạo mục tiêu -->
+<section class="card" id="goal-form">
+  <h3>Mục tiêu mới</h3>
+  <form [formGroup]="goalForm" (ngSubmit)="addGoal()">
+    <div class="inline-form">
+      <label class="grow">Tên mục tiêu <input type="text" formControlName="name" maxlength="150" /></label>
+      <label>Cấp
+        <select formControlName="level">
+          @for (l of levels; track l) { <option [value]="l">{{ levelLabel(l) }}</option> }
+        </select>
+      </label>
+      <label>Trạng thái
+        <select formControlName="status">
+          @for (s of statuses; track s) { <option [value]="s">{{ statusLabel(s) }}</option> }
+        </select>
+      </label>
+    </div>
+    <div class="inline-form">
+      <label class="grow">Mục tiêu cha (tùy chọn)
+        <select formControlName="parentGoalId">
+          <option value="">— Không (mục tiêu gốc) —</option>
+          @for (p of parentOptions(); track p.id) {
+            <option [value]="p.id">{{ levelLabel(p.level) }} · {{ p.name }}</option>
+          }
+        </select>
+      </label>
+      <label>Ngày mục tiêu <input type="date" formControlName="targetDate" /></label>
+      <button type="submit" [disabled]="goalForm.invalid">Thêm mục tiêu</button>
+    </div>
+    <label>Mô tả (tùy chọn) <input type="text" formControlName="description" maxlength="1000" /></label>
+  </form>
+</section>
+
+<!-- Cây mục tiêu (dashboard) -->
+@for (g of rootGoals(); track g.id) {
+  <section class="card">
+    <ng-container *ngTemplateOutlet="goalTpl; context: { $implicit: g }" />
   </section>
+} @empty {
+  <p class="muted">Chưa có mục tiêu nào. Tạo mục tiêu ở trên ↑</p>
 }
 
 <!-- Task tự do (không thuộc mục tiêu nào) -->
@@ -85,21 +162,44 @@
   }
 </section>
 
-<!-- Thói quen (giữ nguyên) -->
+<!-- Thói quen + heatmap (G3) -->
 <section class="card">
   <h3>Thói quen</h3>
   <form class="inline-form" [formGroup]="habitForm" (ngSubmit)="addHabit()">
     <label class="grow">Tên <input type="text" formControlName="name" maxlength="150" /></label>
+    <label>Tần suất
+      <select formControlName="frequency">
+        <option value="daily">Hằng ngày</option>
+        <option value="weekly">Hằng tuần</option>
+      </select>
+    </label>
+    @if (habitForm.controls.frequency.value === 'weekly') {
+      <label>Lần/tuần <input type="number" formControlName="targetPerWeek" min="1" max="7" style="width:80px" /></label>
+    }
     <button type="submit" [disabled]="habitForm.invalid">Thêm</button>
   </form>
 
   @for (h of habits(); track h.id) {
-    <div class="habit">
-      <button class="check" [class.on]="h.checked" (click)="toggleHabit(h)" title="Check hôm nay"
-              [attr.aria-label]="'Check thói quen: ' + h.name">{{ h.checked ? '✓' : '' }}</button>
-      <span class="name">{{ h.name }}</span>
-      <span class="streak">🔥 {{ h.streak }}</span>
-      <button class="icon-btn danger" (click)="deleteHabit(h)" title="Xóa" aria-label="Xóa thói quen">✕</button>
+    <div class="habit-block">
+      <div class="habit">
+        <button class="check" [class.on]="h.checked" (click)="toggleHabit(h)" title="Check hôm nay"
+                [attr.aria-label]="'Check thói quen: ' + h.name">{{ h.checked ? '✓' : '' }}</button>
+        <span class="name">{{ h.name }}
+          @if (h.frequency === 'weekly') { <small class="muted">({{ h.targetPerWeek || '?' }} lần/tuần)</small> }
+        </span>
+        <span class="streak">🔥 {{ h.streak }}</span>
+        <button class="icon-btn danger" (click)="deleteHabit(h)" title="Xóa" aria-label="Xóa thói quen">✕</button>
+      </div>
+      <div class="habit-stats">
+        <span>🔥 Hiện tại: <b>{{ h.streak }}</b></span>
+        <span>🏆 Tốt nhất: <b>{{ h.bestStreak }}</b></span>
+        <span>📊 Hoàn thành 30 ngày: <b>{{ h.completionRate }}%</b></span>
+      </div>
+      <div class="heat" [attr.aria-label]="'Lịch sử 12 tuần: ' + h.name">
+        @for (c of heatCells(h); track c.date) {
+          <span class="c" [class.on]="c.on" [title]="c.date"></span>
+        }
+      </div>
     </div>
   } @empty {
     <p class="muted">Chưa có thói quen nào. Thêm thói quen để bắt đầu xây chuỗi ngày 🔥</p>

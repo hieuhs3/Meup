@@ -3,11 +3,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE } from '../api.config';
 import {
+  Asset,
   Budget,
   Category,
   CreateCategoryRequest,
   CreateTransactionRequest,
   FinanceType,
+  NetWorth,
+  SaveAssetRequest,
   Summary,
   Transaction,
   TransactionFilter,
@@ -92,5 +95,29 @@ export class FinanceService {
 
   deleteBudget(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/budgets/${id}`);
+  }
+
+  // --- Tài sản & Net Worth (G4) ---
+
+  getAssets(): Observable<Asset[]> {
+    return this.http.get<Asset[]>(`${this.base}/assets`);
+  }
+
+  createAsset(body: SaveAssetRequest): Observable<Asset> {
+    return this.http.post<Asset>(`${this.base}/assets`, body);
+  }
+
+  updateAsset(id: string, body: SaveAssetRequest): Observable<Asset> {
+    return this.http.put<Asset>(`${this.base}/assets/${id}`, body);
+  }
+
+  deleteAsset(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/assets/${id}`);
+  }
+
+  getNetWorth(month?: string): Observable<NetWorth> {
+    let params = new HttpParams();
+    if (month) params = params.set('month', month);
+    return this.http.get<NetWorth>(`${this.base}/networth`, { params });
   }
 }

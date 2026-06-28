@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { API_BASE } from '../api.config';
-import { JournalEntry, UpsertJournalRequest } from '../models/journal.models';
+import { JournalEntry, MoodTrendPoint, UpsertJournalRequest } from '../models/journal.models';
 
 @Injectable({ providedIn: 'root' })
 export class JournalService {
@@ -31,5 +31,12 @@ export class JournalService {
 
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/${id}`);
+  }
+
+  moodTrend(from?: string | null, to?: string | null): Observable<MoodTrendPoint[]> {
+    let params = new HttpParams();
+    if (from) params = params.set('from', from);
+    if (to) params = params.set('to', to);
+    return this.http.get<MoodTrendPoint[]>(`${this.base}/mood-trend`, { params });
   }
 }

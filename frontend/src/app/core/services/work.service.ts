@@ -5,7 +5,10 @@ import { API_BASE } from '../api.config';
 import {
   CreateTaskRequest,
   Goal,
+  GoalTreeNode,
   Habit,
+  SaveGoalRequest,
+  SaveHabitRequest,
   TaskItem,
   TaskStatus,
   UpdateTaskRequest,
@@ -35,22 +38,33 @@ export class WorkService {
     return this.http.post<TaskItem>(`${this.base}/tasks/${id}/toggle`, {});
   }
 
+  setTaskStatus(id: string, status: string): Observable<TaskItem> {
+    return this.http.put<TaskItem>(`${this.base}/tasks/${id}/status`, { status });
+  }
+
   deleteTask(id: string): Observable<void> {
     return this.http.delete<void>(`${this.base}/tasks/${id}`);
   }
 
   // --- Goal ---
 
-  getGoals(): Observable<Goal[]> {
-    return this.http.get<Goal[]>(`${this.base}/goals`);
+  getGoals(level?: string, status?: string): Observable<Goal[]> {
+    let params = new HttpParams();
+    if (level) params = params.set('level', level);
+    if (status) params = params.set('status', status);
+    return this.http.get<Goal[]>(`${this.base}/goals`, { params });
   }
 
-  createGoal(name: string): Observable<Goal> {
-    return this.http.post<Goal>(`${this.base}/goals`, { name });
+  getGoalTree(): Observable<GoalTreeNode[]> {
+    return this.http.get<GoalTreeNode[]>(`${this.base}/goals/tree`);
   }
 
-  updateGoal(id: string, name: string): Observable<Goal> {
-    return this.http.put<Goal>(`${this.base}/goals/${id}`, { name });
+  createGoal(body: SaveGoalRequest): Observable<Goal> {
+    return this.http.post<Goal>(`${this.base}/goals`, body);
+  }
+
+  updateGoal(id: string, body: SaveGoalRequest): Observable<Goal> {
+    return this.http.put<Goal>(`${this.base}/goals/${id}`, body);
   }
 
   deleteGoal(id: string): Observable<void> {
@@ -65,12 +79,12 @@ export class WorkService {
     return this.http.get<Habit[]>(`${this.base}/habits`, { params });
   }
 
-  createHabit(name: string): Observable<Habit> {
-    return this.http.post<Habit>(`${this.base}/habits`, { name });
+  createHabit(body: SaveHabitRequest): Observable<Habit> {
+    return this.http.post<Habit>(`${this.base}/habits`, body);
   }
 
-  updateHabit(id: string, name: string): Observable<Habit> {
-    return this.http.put<Habit>(`${this.base}/habits/${id}`, { name });
+  updateHabit(id: string, body: SaveHabitRequest): Observable<Habit> {
+    return this.http.put<Habit>(`${this.base}/habits/${id}`, body);
   }
 
   deleteHabit(id: string): Observable<void> {

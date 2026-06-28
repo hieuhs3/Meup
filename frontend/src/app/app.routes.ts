@@ -14,6 +14,9 @@ import { Finance } from './features/finance/finance';
 import { Health } from './features/health/health';
 import { Work } from './features/work/work';
 import { Journal } from './features/journal/journal';
+import { Career } from './features/career/career';
+import { Documents } from './features/documents/documents';
+import { Knowledge } from './features/knowledge/knowledge';
 import { Calendar } from './features/calendar/calendar';
 import { StatsPage } from './features/stats/stats';
 import { Search } from './features/search/search';
@@ -37,6 +40,9 @@ export const routes: Routes = [
       { path: 'work', component: Work },
       { path: 'calendar', component: Calendar },
       { path: 'journal', component: Journal },
+      { path: 'knowledge', component: Knowledge },
+      { path: 'career', component: Career },
+      { path: 'documents', component: Documents },
       { path: 'stats', component: StatsPage },
       { path: 'insights', component: Insights },
       { path: 'search', component: Search },

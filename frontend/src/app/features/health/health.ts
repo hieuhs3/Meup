@@ -2,7 +2,16 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { HealthService } from '../../core/services/health.service';
 import { ConfirmService } from '../../core/services/confirm.service';
-import { HealthLog, HealthSummary, Medication } from '../../core/models/health.models';
+import {
+  ACTIVITY_TYPE_LABELS,
+  ACTIVITY_TYPES,
+  Activity,
+  ActivityTypeKey,
+  HealthLog,
+  HealthSummary,
+  HealthTrend,
+  Medication,
+} from '../../core/models/health.models';
 
 interface MetricDelta {
   label: string;
@@ -34,6 +43,11 @@ interface MetricDelta {
     .check { width: 34px; height: 34px; border-radius: 50%; padding: 0; background: #eef1fb; color: var(--primary); border: 1px solid var(--border); }
     .check.on { background: var(--success); color: #fff; border-color: var(--success); }
     .icon-btn { background: transparent; color: var(--muted); padding: .2rem .4rem; }
+    .trend-row { display: flex; align-items: flex-end; gap: 3px; height: 90px; overflow-x: auto; }
+    .tcol { display: flex; align-items: flex-end; min-width: 8px; height: 100%; }
+    .tb { width: 8px; border-radius: 2px 2px 0 0; display: block; }
+    .tb.w { background: var(--primary); }
+    .tb.c { background: var(--success); }
   `],
 })
 export class Health implements OnInit {
@@ -69,6 +83,7 @@ export class Health implements OnInit {
     };
     return [
       make('Cân nặng', 'kg', 'weight'),
+      make('BMI', '', 'bmi'),
       make('Giờ ngủ', 'h', 'sleepHours'),
       make('Nước', 'ml', 'waterMl'),
       make('Tập', 'phút', 'workoutMinutes'),
@@ -77,9 +92,22 @@ export class Health implements OnInit {
 
   readonly form = this.fb.nonNullable.group({
     weight: [null as number | null, [Validators.min(0), Validators.max(500)]],
+    heightCm: [null as number | null, [Validators.min(0), Validators.max(300)]],
     sleepHours: [null as number | null, [Validators.min(0), Validators.max(24)]],
     waterMl: [null as number | null, [Validators.min(0), Validators.max(20000)]],
     workoutMinutes: [null as number | null, [Validators.min(0), Validators.max(1440)]],
+    note: [''],
+  });
+
+  // --- Hoạt động & xu hướng (G5) ---
+  readonly activities = signal<Activity[]>([]);
+  readonly trend = signal<HealthTrend | null>(null);
+  readonly activityTypes = ACTIVITY_TYPES;
+  activityLabel(t: string): string { return ACTIVITY_TYPE_LABELS[t as ActivityTypeKey] ?? t; }
+  readonly activityForm = this.fb.nonNullable.group({
+    type: ['running' as ActivityTypeKey, [Validators.required]],
+    durationMin: [null as number | null, [Validators.required, Validators.min(1), Validators.max(1440)]],
+    calories: [null as number | null],
     note: [''],
   });
 
@@ -87,6 +115,37 @@ export class Health implements OnInit {
     this.load();
     this.loadHistory();
     this.loadMeds();
+    this.loadActivities();
+    this.loadTrends();
+  }
+
+  private loadActivities(): void {
+    this.health.getActivities(this.date(), this.date()).subscribe({ next: (a) => this.activities.set(a) });
+  }
+
+  private loadTrends(): void {
+    this.health.getTrends(this.isoDaysAgo(30), this.todayIso()).subscribe({ next: (t) => this.trend.set(t) });
+  }
+
+  addActivity(): void {
+    if (this.activityForm.invalid) return;
+    const v = this.activityForm.getRawValue();
+    this.health.createActivity({
+      date: this.date(), type: v.type, durationMin: Number(v.durationMin),
+      calories: v.calories ?? null, note: v.note || null,
+    }).subscribe({
+      next: () => {
+        this.activityForm.reset({ type: 'running', durationMin: null, calories: null, note: '' });
+        this.loadActivities();
+        this.loadTrends();
+      },
+      error: (err) => this.error.set(err?.error?.error ?? 'Thêm hoạt động thất bại.'),
+    });
+  }
+
+  async deleteActivity(a: Activity): Promise<void> {
+    if (!(await this.confirm.ask(`Xóa hoạt động "${this.activityLabel(a.type)}"?`))) return;
+    this.health.deleteActivity(a.id).subscribe({ next: () => { this.loadActivities(); this.loadTrends(); } });
   }
 
   changeDate(value: string): void {
@@ -95,6 +154,7 @@ export class Health implements OnInit {
     this.msg.set(null);
     this.load();
     this.loadMeds();
+    this.loadActivities();
   }
 
   // --- Thuốc (A2) ---
@@ -152,6 +212,7 @@ export class Health implements OnInit {
   private patchForm(log: HealthLog | null): void {
     this.form.reset({
       weight: log?.weight ?? null,
+      heightCm: log?.heightCm ?? null,
       sleepHours: log?.sleepHours ?? null,
       waterMl: log?.waterMl ?? null,
       workoutMinutes: log?.workoutMinutes ?? null,
@@ -165,6 +226,7 @@ export class Health implements OnInit {
     this.health
       .upsert(this.date(), {
         weight: v.weight,
+        heightCm: v.heightCm,
         sleepHours: v.sleepHours,
         waterMl: v.waterMl,
         workoutMinutes: v.workoutMinutes,
@@ -175,6 +237,7 @@ export class Health implements OnInit {
           this.msg.set('Đã lưu nhật ký.');
           this.load();
           this.loadHistory();
+          this.loadTrends();
         },
         error: (err) => this.msg.set(err?.error?.error ?? 'Lưu thất bại.'),
       });

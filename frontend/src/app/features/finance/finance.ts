@@ -5,9 +5,14 @@ import { AiService } from '../../core/services/ai.service';
 import { ConfirmService } from '../../core/services/confirm.service';
 import { MoneyPipe } from '../../core/pipes/money.pipe';
 import {
+  ASSET_TYPE_LABELS,
+  ASSET_TYPES,
+  Asset,
+  AssetTypeKey,
   Budget,
   Category,
   FinanceType,
+  NetWorth,
   Summary,
   Transaction,
   TransactionList,
@@ -37,6 +42,19 @@ import {
     .cat-chip button { background: transparent; color: var(--muted); padding: 0 .2rem; }
     .danger-btn { background: var(--danger); }
     .inline-input { display: inline-block; width: auto; margin: 0; padding: .2rem .4rem; }
+    .asset-row { display: flex; align-items: center; gap: .6rem; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+    .asset-row .nm { flex: 1; }
+    .asset-row .ty { font-size: .75rem; background: #eef1fb; color: var(--primary); border-radius: 999px; padding: .1rem .5rem; }
+    .nw-grid { display: flex; flex-wrap: wrap; gap: .5rem; margin: .5rem 0; }
+    .nw-grid .g { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .5rem .8rem; font-size: .85rem; }
+    .nw-grid .g b { display: block; }
+    .flow { display: flex; align-items: flex-end; gap: 8px; height: 110px; padding-top: .5rem; }
+    .flow .col { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; flex: 1; gap: 2px; }
+    .flow .bars { display: flex; align-items: flex-end; gap: 2px; height: 80px; }
+    .flow .bars span { width: 10px; border-radius: 3px 3px 0 0; }
+    .flow .bars .inc { background: var(--success); }
+    .flow .bars .exp { background: var(--danger); }
+    .flow .m { font-size: .6rem; color: var(--muted); }
   `],
 })
 export class Finance implements OnInit {
@@ -99,6 +117,21 @@ export class Finance implements OnInit {
     amount: [null as number | null, [Validators.required, Validators.min(0.01)]],
   });
 
+  // --- Tài sản & Net Worth (G4) ---
+  readonly assets = signal<Asset[]>([]);
+  readonly netWorth = signal<NetWorth | null>(null);
+  readonly assetMsg = signal<string | null>(null);
+  readonly editingAssetId = signal<string | null>(null);
+  readonly assetTypes = ASSET_TYPES;
+  assetTypeLabel(t: string): string { return ASSET_TYPE_LABELS[t as AssetTypeKey] ?? t; }
+
+  readonly assetForm = this.fb.nonNullable.group({
+    name: ['', [Validators.required, Validators.maxLength(150)]],
+    type: ['cash' as AssetTypeKey, [Validators.required]],
+    value: [null as number | null, [Validators.required, Validators.min(0)]],
+    note: [''],
+  });
+
   constructor() {
     this.txForm.controls.type.valueChanges.subscribe((t) => {
       this.txType.set(t);
@@ -112,6 +145,53 @@ export class Finance implements OnInit {
     this.loadSummary();
     this.loadTransactions();
     this.loadBudgets();
+    this.loadAssets();
+    this.loadNetWorth();
+  }
+
+  // --- Tài sản & Net Worth (G4) ---
+
+  loadAssets(): void {
+    this.finance.getAssets().subscribe({ next: (a) => this.assets.set(a) });
+  }
+
+  loadNetWorth(): void {
+    this.finance.getNetWorth().subscribe({ next: (n) => this.netWorth.set(n) });
+  }
+
+  submitAsset(): void {
+    if (this.assetForm.invalid) return;
+    const v = this.assetForm.getRawValue();
+    const body = { name: v.name, type: v.type, value: Number(v.value), note: v.note || null };
+    const id = this.editingAssetId();
+    const req = id ? this.finance.updateAsset(id, body) : this.finance.createAsset(body);
+    req.subscribe({
+      next: () => {
+        this.assetMsg.set(id ? 'Đã cập nhật tài sản.' : 'Đã thêm tài sản.');
+        this.resetAssetForm();
+        this.loadAssets();
+        this.loadNetWorth();
+      },
+      error: (err) => this.assetMsg.set(err?.error?.error ?? 'Lưu tài sản thất bại.'),
+    });
+  }
+
+  editAsset(a: Asset): void {
+    this.editingAssetId.set(a.id);
+    this.assetForm.setValue({ name: a.name, type: a.type, value: a.value, note: a.note ?? '' });
+    this.assetMsg.set(null);
+  }
+
+  resetAssetForm(): void {
+    this.editingAssetId.set(null);
+    this.assetForm.reset({ name: '', type: 'cash', value: null, note: '' });
+  }
+
+  async deleteAsset(a: Asset): Promise<void> {
+    if (!(await this.confirm.ask(`Xóa tài sản "${a.name}"?`))) return;
+    this.finance.deleteAsset(a.id).subscribe({
+      next: () => { this.loadAssets(); this.loadNetWorth(); },
+    });
   }
 
   // --- Ngân sách (A1) ---
@@ -331,6 +411,7 @@ export class Finance implements OnInit {
     this.loadSummary();
     this.loadTransactions();
     this.loadBudgets();
+    this.loadNetWorth();
   }
 
 

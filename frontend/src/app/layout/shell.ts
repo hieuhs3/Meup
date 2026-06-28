@@ -27,6 +27,9 @@ interface GlassPos { x: number; y: number; w: number; h: number; }
           <a routerLink="/app/work" routerLinkActive="active">✓ Công việc</a>
           <a routerLink="/app/calendar" routerLinkActive="active">📅 Lịch trình</a>
           <a routerLink="/app/journal" routerLinkActive="active">📓 Nhật ký</a>
+          <a routerLink="/app/knowledge" routerLinkActive="active">🧠 Kiến thức</a>
+          <a routerLink="/app/career" routerLinkActive="active">💼 Sự nghiệp</a>
+          <a routerLink="/app/documents" routerLinkActive="active">📁 Tài liệu</a>
           <a routerLink="/app/stats" routerLinkActive="active">📊 Thống kê</a>
           <a routerLink="/app/insights" routerLinkActive="active">✨ Gợi ý AI</a>
           <a routerLink="/app/search" routerLinkActive="active">🔍 Tìm kiếm</a>

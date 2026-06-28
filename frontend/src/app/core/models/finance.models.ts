@@ -74,3 +74,50 @@ export interface TransactionFilter {
   page?: number;
   pageSize?: number;
 }
+
+// --- Tài sản & Net Worth (G4) ---
+
+export type AssetTypeKey = 'cash' | 'bank' | 'stock' | 'crypto' | 'gold' | 'other';
+
+export const ASSET_TYPES: AssetTypeKey[] = ['cash', 'bank', 'stock', 'crypto', 'gold', 'other'];
+
+export const ASSET_TYPE_LABELS: Record<AssetTypeKey, string> = {
+  cash: 'Tiền mặt', bank: 'Ngân hàng', stock: 'Cổ phiếu', crypto: 'Crypto', gold: 'Vàng', other: 'Khác',
+};
+
+export interface Asset {
+  id: string;
+  name: string;
+  type: AssetTypeKey;
+  value: number;
+  note: string | null;
+  updatedAt: string;
+}
+
+export interface SaveAssetRequest {
+  name: string;
+  type: AssetTypeKey;
+  value: number;
+  note?: string | null;
+}
+
+export interface AssetGroup {
+  type: AssetTypeKey;
+  total: number;
+}
+
+export interface CashFlowPoint {
+  month: string; // yyyy-MM
+  income: number;
+  expense: number;
+  net: number;
+}
+
+export interface NetWorth {
+  netWorth: number;
+  byType: AssetGroup[];
+  monthIncome: number;
+  monthExpense: number;
+  savingRate: number; // %
+  cashFlow: CashFlowPoint[];
+}

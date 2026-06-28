@@ -47,6 +47,15 @@
           <input type="text" formControlName="title" maxlength="200" placeholder="Tiêu đề (tùy chọn)" />
         </label>
       </div>
+      <label>Tâm trạng</label>
+      <div class="mood-pick">
+        @for (m of moods; track m) {
+          <button type="button" [class.on]="form.controls.mood.value === m" (click)="pickMood(m)"
+                  [title]="moodLabel(m)" [attr.aria-label]="'Tâm trạng: ' + moodLabel(m)">
+            {{ moodEmoji(m) }}<span class="lbl">{{ moodLabel(m) }}</span>
+          </button>
+        }
+      </div>
       <label>Nội dung</label>
       <app-rich-editor formControlName="contentHtml"></app-rich-editor>
       <div style="margin-top:.8rem">
@@ -61,6 +70,22 @@
   </div>
 }
 
+<!-- Xu hướng tâm trạng (G2) -->
+@if (moodTrend().length) {
+  <section class="card">
+    <h3>Xu hướng tâm trạng</h3>
+    <div class="trend">
+      @for (p of moodTrend(); track p.date) {
+        <div class="col" [title]="p.date + ' · ' + moodLabel(p.mood)">
+          <span class="e">{{ moodEmoji(p.mood) }}</span>
+          <span class="b" [style.height.px]="p.score * 14"></span>
+          <span class="d">{{ p.date.slice(5) }}</span>
+        </div>
+      }
+    </div>
+  </section>
+}
+
 <!-- Lọc + danh sách -->
 <section class="card">
   <form class="bar" [formGroup]="filterForm" (ngSubmit)="load()">
@@ -73,7 +98,10 @@
   @for (e of entries(); track e.id) {
     <div class="entry">
       <div class="entry-head">
-        <h4>{{ e.title || '(Không tiêu đề)' }}</h4>
+        <h4>
+          @if (e.mood) { <span class="entry-mood" [title]="moodLabel(e.mood)">{{ moodEmoji(e.mood) }}</span> }
+          {{ e.title || '(Không tiêu đề)' }}
+        </h4>
         <span class="meta">{{ e.date }}</span>
       </div>
       @if (expandedId() === e.id) {
