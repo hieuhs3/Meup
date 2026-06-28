@@ -3,6 +3,11 @@
 Trạng thái pipeline: Yêu cầu ✅ · Thiết kế ✅ · Lập kế hoạch ✅ · Code ✅ · Test ✅ — **HOÀN TẤT**
 Ưu tiên: P1 (MVP). Phụ thuộc: **F0** (auth + cô lập theo UserId).
 
+> **Phase 3 · G5 — Chỉ số & hoạt động ✅:** thêm `HealthLog.HeightCm` → **BMI** tự tính (weight/(h/100)²);
+> entity `Activity` (running/walking/gym/swimming/cycling/other + thời lượng + calo) CRUD `api/health/activities`;
+> `GET /api/health/trends?from&to` trả chuỗi cân nặng/BMI/calo. FE: ô chiều cao + thẻ BMI + mục Hoạt động + biểu đồ xu hướng.
+> Thêm 6 test (`G5HealthMetricsTests`). Nguồn: `docs/07-gap-analysis.md` (G5).
+
 > **Test: 45/45 pass** (thêm 9 integration cho F2: upsert không trùng ngày, ngày trống trả rỗng,
 > validate vượt ngưỡng, summary so sánh hôm trước, không có lần trước → previous null, xóa rồi 404,
 > lọc khoảng ngày, cô lập theo user, 401).

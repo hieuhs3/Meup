@@ -3,6 +3,11 @@
 Trạng thái pipeline: Yêu cầu ✅ · Thiết kế ✅ · Lập kế hoạch ✅ · Code ✅ · Test ✅ — **HOÀN TẤT**
 Ưu tiên: P1 (MVP). Phụ thuộc: **F0** (auth + cô lập theo UserId).
 
+> **Phase 3 · G4 — Tài sản & Net Worth ✅:** entity `Asset` (cash/bank/stock/crypto/gold/other, giá trị numeric(18,2));
+> CRUD `api/finance/assets`; `GET /api/finance/networth?month=` trả **Net Worth** (tổng tài sản gộp theo loại),
+> **Saving Rate** ((thu−chi)/thu tháng tham chiếu), **Cash Flow** 6 tháng. FE: khối Tài sản + thẻ Net Worth/Saving Rate
+> + biểu đồ dòng tiền (CSS). Thêm 5 test (`G4AssetTests`). Nguồn: `docs/07-gap-analysis.md` (G4).
+
 > **Test: 36/36 pass** (thêm 11 integration cho F1: seed danh mục mặc định, xóa danh mục gỡ liên kết,
 > tổng hợp số dư, validate số tiền/danh mục/khác loại, lọc theo loại & từ khóa, phân trang, cô lập theo user, 401).
 > Kiểm chứng API thật: số dư = thu − chi đúng (vd 5.000.000 − 1.200.000 = 3.800.000), tổng ngày/tháng đúng.

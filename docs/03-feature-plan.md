@@ -71,6 +71,20 @@ Ngôn ngữ (i18n), giao diện (dark mode), xuất/nhập dữ liệu. Phụ th
 | F8/C3 Cài đặt (dark mode + xuất dữ liệu) | P2 | ✅ HOÀN TẤT (i18n vi/en còn để sau) |
 | C4 PWA / Offline | P2 | ✅ HOÀN TẤT (manifest + icon + service worker) |
 | D AI Insights (Claude API) | P1 | ⏳ Phase 2 (cần ANTHROPIC_API_KEY) |
+| **G1 Mục tiêu đa cấp + trạng thái + dashboard** (Phase 3) | P1 | ✅ HOÀN TẤT (`docs/features/g1-goal-tree.md`) — backend + FE + 11 test |
+| **G2 Mood tracking (Nhật ký)** (Phase 3) | P1 | ✅ HOÀN TẤT (`docs/features/f5-journal.md`) — 5 test |
+| **G4 Tài sản & Net Worth (Tài chính)** (Phase 3) | P1 | ✅ HOÀN TẤT (`docs/features/f1-finance.md`) — 5 test |
+| **G3 Habit nâng cấp + heatmap (Công việc)** (Phase 3) | P2 | ✅ HOÀN TẤT (`docs/features/f3-work.md`) — 4 test |
+| **→ Đợt 3A (G1+G2+G3+G4) khép — 120 test backend pass** | — | ✅ |
+| **G5 Sức khỏe: BMI + hoạt động + xu hướng** (Phase 3) | P2 | ✅ HOÀN TẤT (`docs/features/f2-health.md`) — 6 test |
+| **G6 Kiến thức: tags + backlinks (Notes)** (Phase 3) | P2 | ✅ HOÀN TẤT (`docs/features/g6-g8-knowledge-career-document.md`) — 6 test |
+| **G7 Sự nghiệp: Skills/Certs/Projects** (Phase 3) | P2 | ✅ HOÀN TẤT (cùng doc) — 5 test |
+| **G8 Tài liệu: upload + storage** (Phase 3) | P2 | ✅ HOÀN TẤT (cùng doc) — 4 test |
+| **→ Đợt 3B (G5+G6+G7+G8) khép — 141 test backend pass** | — | ✅ |
+| **G11 Task: Kanban + trạng thái (todo→done)** (Phase 3) | P3 | ✅ HOÀN TẤT (`docs/features/f3-work.md`) — 5 test |
+| **G9 AI Assistant + RAG** (Phase 3) | P3 | ⏳ CHỜ KHÓA/DỊCH VỤ (ANTHROPIC_API_KEY + embedding + PgVector) |
+| **G10 Web Push / Telegram** (Phase 3) | P3 | ⏳ CHỜ KHÓA (VAPID / Telegram bot token) |
+| **→ Tổng: 146 test backend pass** | — | ✅ |
 
 ---
 

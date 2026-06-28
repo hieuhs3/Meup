@@ -3,6 +3,11 @@
 Trạng thái pipeline: Yêu cầu ✅ · Thiết kế ✅ · Lập kế hoạch ✅ · Code ✅ · Test ✅ — **HOÀN TẤT**
 Ưu tiên: P1. Phụ thuộc: **F0** (auth + cô lập theo UserId).
 
+> **Phase 3 · G2 — Mood tracking ✅:** thêm `JournalEntry.Mood` (nullable ≤20 ∈ excellent/good/normal/bad/terrible)
+> + static `Mood`/`Score` 1–5; `mood` trong upsert/DTO (regex → 400 nếu sai); `GET /api/journal/mood-trend?from&to`
+> trả `[{date,mood,score}]` (loại bài không mood, sắp ngày tăng). FE: bộ chọn 5 emoji + emoji cạnh tiêu đề +
+> biểu đồ cột xu hướng (CSS). Thêm 5 test (`G2MoodTests`). Nguồn: `docs/07-gap-analysis.md` (G2).
+
 > **Test: 61/61 pass** (thêm 5 integration cho F5: CRUD, tiêu đề quá dài → 400, lọc ngày + tìm theo
 > tiêu đề/nội dung, cô lập theo user, 401). `ng build` sạch.
 > Kiểm chứng API thật: lưu/đọc giữ nguyên định dạng HTML (`<h2><b><i><ul>`), tìm trong nội dung hoạt động.

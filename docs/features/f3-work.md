@@ -3,6 +3,14 @@
 Trạng thái pipeline: Yêu cầu ✅ · Thiết kế ✅ · Lập kế hoạch ✅ · Code ✅ · Test ✅ — **HOÀN TẤT**
 Ưu tiên: P1 (MVP). Phụ thuộc: **F0** (auth + cô lập theo UserId).
 
+> **Phase 3 mở rộng:**
+> - **G1 — Mục tiêu đa cấp ✅** (cây đời→năm→quý→tháng→tuần + trạng thái + rollup + dashboard): xem `docs/features/g1-goal-tree.md`.
+> - **G3 — Habit nâng cấp ✅:** thêm `Frequency` (daily/weekly) + `TargetPerWeek`; DTO trả `bestStreak`, `completionRate`
+>   (30 ngày), `recentChecks` (12 tuần). FE: form tần suất + thống kê + **heatmap** 12 tuần. Thêm 4 test (`G3HabitHeatmapTests`).
+> - **G11 — Kanban ✅:** `TaskItem.Status` (todo/in_progress/review/done/cancelled), đồng bộ `IsDone`;
+>   `PUT /api/work/tasks/{id}/status`; FE có công tắc **Cây / Bảng Kanban** (5 cột, đổi trạng thái bằng dropdown).
+>   Thêm 5 test (`G11TaskStatusTests`). Sprint vẫn hoãn.
+
 > **Test: 56/56 pass** (thêm 11 integration cho F3: task quá hạn + toggle, lọc trạng thái, validate,
 > goal tiến độ + ngoài khoảng, habit streak liên tiếp + idempotent + bỏ check, streak đứt khi có khoảng trống,
 > summary đếm số liệu, cô lập theo user, 401).

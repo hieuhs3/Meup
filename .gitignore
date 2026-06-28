@@ -30,6 +30,7 @@ Thumbs.db
 backend/MeUp.Api/wwwroot/uploads/
 backend/MeUp.Api/keys/
 backend/MeUp.Api/sent-emails/
+backend/MeUp.Api/storage/
 
 # ---- Secrets / env ----
 .env

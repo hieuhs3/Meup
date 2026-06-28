@@ -24,7 +24,23 @@ Chức năng **F5 — Nhật ký** đã hoàn tất: viết nhật ký theo ngà
 **Phase 2:** ✅ A1 Ngân sách · ✅ F4 Lịch trình · ✅ F7 Thống kê (biểu đồ) · ✅ A2 Thuốc · ✅ A3 Task lặp lại ·
 ✅ B2 Tìm kiếm toàn cục · ✅ A5 Ghi chú nhanh · ✅ C3 Cài đặt (dark mode + xuất dữ liệu) · ✅ C4 PWA ·
 ✅ C1 Nhắc nhở/thông báo · ✅ C2 Reset mật khẩu + verify email + khóa đăng nhập.
-**Còn lại:** D AI insights (cần `ANTHROPIC_API_KEY`); i18n vi/en (tùy chọn).
+**Phase 3 — Đợt 3A (đã xong, 120 test backend):**
+✅ **G1** Mục tiêu đa cấp (đời→năm→quý→tháng→tuần) + trạng thái + tiến độ rollup + Goal Dashboard ·
+✅ **G2** Mood tracking + biểu đồ xu hướng (Nhật ký) ·
+✅ **G4** Tài sản & Net Worth + Saving Rate + Cash Flow (Tài chính) ·
+✅ **G3** Habit nâng cấp: best streak + completion % + **heatmap** 12 tuần.
+Xem `docs/08-phase3-plan.md`.
+**Phase 3 — Đợt 3B (đã xong, 141 test backend):**
+✅ **G5** Sức khỏe: BMI + hoạt động (chạy/gym/bơi…) + biểu đồ xu hướng ·
+✅ **G6** Kiến thức: ghi chú có tiêu đề/thẻ + **backlinks** `[[..]]` (kiểu Obsidian) ·
+✅ **G7** Sự nghiệp: Skills/Certifications/Projects ·
+✅ **G8** Tài liệu: upload + phân loại + lưu local (`IFileStorage`, đổi MinIO/S3 sau).
+**Phase 3 — Đợt 3C:** ✅ **G11** Task Kanban (todo→đang làm→soát→xong) — công tắc Cây/Kanban.
+**Chờ khóa/dịch vụ ngoài (làm khi deploy):** G9 AI Assistant + RAG (cần `ANTHROPIC_API_KEY` + embedding provider + PgVector),
+G10 Web Push/Telegram (cần VAPID / bot token).
+**Còn lại:** i18n vi/en (tùy chọn).
+
+> Tổng Phase 3 đã xong: **G1–G8 + G11** — backend **146 test pass**, frontend build sạch.
 Email: mặc định ghi ra `backend/MeUp.Api/sent-emails/` (dev); điền `Email:Host` trong appsettings để bật SMTP thật.
 Kế hoạch tổng thể & lộ trình Phase 2: xem `docs/03-feature-plan.md`.
 
