@@ -1,32 +1,75 @@
 <header class="page-head">
   <h1>Hôm nay</h1>
-  <p class="muted">Xin chào {{ auth.user()?.displayName }} 👋</p>
+  @if (!platform.useMobileLayout()) {
+    <p class="muted">Xin chào {{ auth.user()?.displayName }} 👋</p>
+  }
 </header>
 
-<div class="date-bar">
-  <button class="ghost nav" (click)="shiftDay(-1)" title="Ngày trước">◀</button>
-  <input type="date" [value]="date()" (change)="pickDate($any($event.target).value)" />
-  <button class="ghost nav" (click)="shiftDay(1)" title="Ngày sau">▶</button>
-  <span class="day-label">{{ dateLabel() }}</span>
-  @if (!isToday()) {
-    <button class="today-btn" (click)="goToday()">Về hôm nay</button>
-  }
-</div>
+<!-- ── DESKTOP: Date bar ngang ──────────────────────── -->
+@if (!platform.useMobileLayout()) {
+  <div class="date-bar">
+    <button class="ghost nav" (click)="shiftDay(-1)" title="Ngày trước">◀</button>
+    <input type="date" [value]="date()" (change)="pickDate($any($event.target).value)" />
+    <button class="ghost nav" (click)="shiftDay(1)" title="Ngày sau">▶</button>
+    <span class="day-label">{{ dateLabel() }}</span>
+    @if (!isToday()) {
+      <button class="today-btn" (click)="goToday()">Về hôm nay</button>
+    }
+  </div>
+}
 
+<!-- ── MOBILE: DateNavigator component ──────────────── -->
+@if (platform.useMobileLayout()) {
+  <app-date-navigator
+    [label]="dateLabel()"
+    [isToday]="isToday()"
+    (prev)="shiftDay(-1)"
+    (next)="shiftDay(1)"
+    (goToday)="goToday()"
+  />
+
+  <!-- Summary row: 3 pill cards cuộn ngang -->
+  @if (finance(); as s) {
+    <div class="summary-row">
+      <div class="sum-pill">
+        <div class="s-label">Thu nhập</div>
+        <div class="s-value income">+{{ (s.dayIncome | money) }}</div>
+      </div>
+      <div class="sum-pill">
+        <div class="s-label">Chi tiêu</div>
+        <div class="s-value expense">−{{ (s.dayExpense | money) }}</div>
+      </div>
+      <div class="sum-pill">
+        <div class="s-label">Số dư</div>
+        <div class="s-value" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">
+          {{ (s.balance | money) }}
+        </div>
+      </div>
+    </div>
+  }
+}
+
+<!-- ── CARDS (desktop + mobile) ─────────────────────── -->
 <div class="cards">
   <!-- Tài chính -->
   <a class="card tile" routerLink="/app/finance">
     <h3>💰 Tài chính</h3>
-    @if (finance(); as s) {
-      <p class="hint" style="margin:0">Số dư</p>
-      <p class="big" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">{{ (s.balance | money) }}</p>
-      @if (s.dayIncome > 0 || s.dayExpense > 0) {
-        <p class="hint" style="margin:0">Ngày này: <span class="income">+{{ (s.dayIncome | money) }}</span> · <span class="expense">−{{ (s.dayExpense | money) }}</span></p>
+    @if (!platform.useMobileLayout()) {
+      <!-- Desktop: hiện đầy đủ -->
+      @if (finance(); as s) {
+        <p class="hint" style="margin:0">Số dư</p>
+        <p class="big" [class.income]="s.balance >= 0" [class.expense]="s.balance < 0">{{ (s.balance | money) }}</p>
+        @if (s.dayIncome > 0 || s.dayExpense > 0) {
+          <p class="hint" style="margin:0">Ngày này: <span class="income">+{{ (s.dayIncome | money) }}</span> · <span class="expense">−{{ (s.dayExpense | money) }}</span></p>
+        } @else {
+          <p class="hint">Chưa có giao dịch ngày này. <span class="pill">Thêm giao dịch →</span></p>
+        }
       } @else {
-        <p class="hint">Chưa có giao dịch ngày này. <span class="pill">Thêm giao dịch →</span></p>
+        <p class="hint">Đang tải…</p>
       }
     } @else {
-      <p class="hint">Đang tải…</p>
+      <!-- Mobile: đã hiện summary ở trên, chỉ cần link -->
+      <p class="hint" style="margin:0">Xem lịch sử giao dịch →</p>
     }
   </a>
 
@@ -34,8 +77,27 @@
   <a class="card tile" routerLink="/app/health">
     <h3>♥ Sức khỏe</h3>
     @if (health(); as h) {
-      <p class="hint" style="margin:.2rem 0">Cân nặng: <strong>{{ h.weight ?? '—' }}</strong> kg · Ngủ: <strong>{{ h.sleepHours ?? '—' }}</strong> h</p>
-      <p class="hint" style="margin:0">Nước: {{ h.waterMl ?? '—' }} ml · Tập: {{ h.workoutMinutes ?? '—' }} phút</p>
+      @if (platform.useMobileLayout()) {
+        <!-- Mobile: metric chips ngang -->
+        <div class="metric-row">
+          @if (h.weight) {
+            <span class="metric-chip"><span class="mc-icon">⚖️</span>{{ h.weight }} kg</span>
+          }
+          @if (h.sleepHours) {
+            <span class="metric-chip"><span class="mc-icon">😴</span>{{ h.sleepHours }} h</span>
+          }
+          @if (h.waterMl) {
+            <span class="metric-chip"><span class="mc-icon">💧</span>{{ h.waterMl }} ml</span>
+          }
+          @if (h.workoutMinutes) {
+            <span class="metric-chip"><span class="mc-icon">🏃</span>{{ h.workoutMinutes }} phút</span>
+          }
+        </div>
+      } @else {
+        <!-- Desktop: text đầy đủ -->
+        <p class="hint" style="margin:.2rem 0">Cân nặng: <strong>{{ h.weight ?? '—' }}</strong> kg · Ngủ: <strong>{{ h.sleepHours ?? '—' }}</strong> h</p>
+        <p class="hint" style="margin:0">Nước: {{ h.waterMl ?? '—' }} ml · Tập: {{ h.workoutMinutes ?? '—' }} phút</p>
+      }
     } @else {
       <p class="hint">Chưa ghi nhật ký ngày này. <span class="pill">Ghi ngay →</span></p>
     }
@@ -71,3 +133,8 @@
     }
   </a>
 </div>
+
+<!-- ── FAB: chỉ hiện trên mobile ───────────────────── -->
+@if (platform.useMobileLayout()) {
+  <app-quick-add-fab />
+}

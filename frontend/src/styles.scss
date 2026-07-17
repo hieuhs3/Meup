@@ -1,3 +1,6 @@
+/* Google Fonts: Inter — chuẩn hơn cho mobile */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 /* MeUp — global styles */
 :root {
   --bg: #f4f6fb;
@@ -241,25 +244,35 @@ textarea { min-height: 80px; resize: vertical; }
   display: flex; align-items: center; gap: .5rem; padding: .75rem 0;
 }
 
-/* ── Responsive: gập sidebar thành thanh điều hướng ngang trên mobile ─ */
-@media (max-width: 768px) {
-  .shell { flex-direction: column; }
-  .sidebar {
-    width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--border);
-    padding: .75rem 1rem;
-  }
-  .brand { margin-bottom: .6rem; }
-  .sidebar nav {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: .4rem;
-    padding-bottom: .3rem;
-    -webkit-overflow-scrolling: touch;
-  }
-  .sidebar nav a { white-space: nowrap; }
-  .sidebar-footer { border-top: none; padding-top: .6rem; }
-  .content { padding: 1.25rem 1rem; }
+/* ── Responsive: Bottom Tab Bar thay thế sidebar trên mobile ─────── */
+/* Trên mobile (.shell.mobile), sidebar ẩn hoàn toàn — shell chỉ có main + tab bar */
+.shell.mobile {
+  flex-direction: column;
+}
+
+/* Xóa giao diện tap highlight mặc định trên mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth momentum scrolling toàn app */
+.content {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Khi desktop thu nhỏ < 768px mà KHÔNG phải Capacitor native,
+   vẫn giữ responsive cũ (top nav) cho PWA/web browser */
+@media (max-width: 767px) {
+  /* Shell mobile: sidebar ẩn, tab bar hiện (do PlatformService xử lý)
+     CSS này chỉ áp dụng cho các phần còn lại của layout */
+  .content { padding: 1rem; }
   .cards { grid-template-columns: 1fr; }
+
+  /* Form, input rộng hơn trên mobile */
+  .card { padding: 1rem; }
+}
+
+/* Font Inter cho toàn bộ app */
+html, body {
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
 }

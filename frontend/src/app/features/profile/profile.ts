@@ -3,7 +3,9 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { API_ORIGIN } from '../../core/api.config';
 import { AuthService } from '../../core/services/auth.service';
 import { UsersService } from '../../core/services/users.service';
+import { PlatformService } from '../../core/services/platform.service';
 import { TwoFactorSetup } from '../../core/models/auth.models';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 @Component({
   selector: 'app-profile',
@@ -21,8 +23,14 @@ import { TwoFactorSetup } from '../../core/models/auth.models';
           <div class="avatar-lg placeholder">{{ initial() }}</div>
         }
         <div>
-          <input #fileInput type="file" accept="image/png,image/jpeg,image/webp" (change)="onFile(fileInput)" />
-          <p class="muted">PNG, JPEG hoặc WebP, tối đa 2 MB.</p>
+          @if (platform.isNative()) {
+            <button type="button" class="btn-camera" (click)="takePhoto()">
+              📸 Chụp ảnh / Chọn từ thư viện
+            </button>
+          } @else {
+            <input #fileInput type="file" accept="image/png,image/jpeg,image/webp" (change)="onFile(fileInput)" />
+          }
+          <p class="muted">Tối đa 2 MB.</p>
           @if (auth.user()?.avatarUrl) {
             <button type="button" class="ghost" (click)="removeAvatar()">Xóa ảnh</button>
           }
@@ -165,12 +173,31 @@ import { TwoFactorSetup } from '../../core/models/auth.models';
     .recovery ul { columns: 2; }
     .card.danger { border: 1px solid #fecaca; }
     .danger-btn { background: #dc2626; color: #fff; }
+    .btn-camera {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--text);
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn-camera:active {
+      transform: scale(0.97);
+      background: var(--border);
+    }
   `],
 })
 export class Profile {
   private readonly fb = inject(FormBuilder);
   private readonly users = inject(UsersService);
   readonly auth = inject(AuthService);
+  readonly platform = inject(PlatformService);
 
   readonly avatarUrl = computed(() => {
     const u = this.auth.user()?.avatarUrl;
@@ -249,12 +276,36 @@ export class Profile {
   onFile(input: HTMLInputElement): void {
     const file = input.files?.[0];
     if (!file) return;
+    this.uploadFile(file);
+  }
+
+  async takePhoto(): Promise<void> {
+    try {
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt, // Prompt: Cho phép chọn Chụp ảnh hoặc Chọn từ thư viện
+      });
+
+      if (!image.webPath) return;
+
+      const response = await fetch(image.webPath);
+      const blob = await response.blob();
+      const file = new File([blob], `avatar.${image.format}`, { type: blob.type });
+
+      this.uploadFile(file);
+    } catch (e) {
+      console.warn('Camera error or cancelled:', e);
+    }
+  }
+
+  private uploadFile(file: File): void {
     this.users.uploadAvatar(file).subscribe({
       next: (user) => {
         this.auth.updateUser(user);
         this.avatarOk.set(true);
         this.avatarMsg.set('Đã cập nhật ảnh đại diện.');
-        input.value = '';
       },
       error: (err) => {
         this.avatarOk.set(false);

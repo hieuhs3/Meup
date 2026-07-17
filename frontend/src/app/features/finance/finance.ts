@@ -3,7 +3,9 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FinanceService } from '../../core/services/finance.service';
 import { AiService } from '../../core/services/ai.service';
 import { ConfirmService } from '../../core/services/confirm.service';
+import { PlatformService } from '../../core/services/platform.service';
 import { MoneyPipe } from '../../core/pipes/money.pipe';
+import { MobileFinanceSheet } from './mobile-finance-sheet';
 import {
   ASSET_TYPE_LABELS,
   ASSET_TYPES,
@@ -20,7 +22,7 @@ import {
 
 @Component({
   selector: 'app-finance',
-  imports: [ReactiveFormsModule, MoneyPipe],
+  imports: [ReactiveFormsModule, MoneyPipe, MobileFinanceSheet],
   templateUrl: './finance.html',
   styles: [`
     .sum-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
@@ -62,7 +64,9 @@ export class Finance implements OnInit {
   private readonly finance = inject(FinanceService);
   private readonly ai = inject(AiService);
   private readonly confirm = inject(ConfirmService);
+  readonly platform = inject(PlatformService);
   readonly suggesting = signal(false);
+  readonly showMobileSheet = signal(false);
 
   readonly summary = signal<Summary | null>(null);
   readonly categories = signal<Category[]>([]);
@@ -258,6 +262,14 @@ export class Finance implements OnInit {
         next: (l) => this.list.set(l),
         error: () => this.error.set('Không tải được danh sách giao dịch.'),
       });
+  }
+
+  /** Gọi sau khi lưu giao dịch (dùng từ template) */
+  reloadAfterSave(): void {
+    this.loadTransactions();
+    this.finance.getSummary(this.todayIso()).subscribe({
+      next: (s) => this.summary.set(s),
+    });
   }
 
   // --- Giao dịch ---

@@ -5,61 +5,91 @@ import { filter } from 'rxjs/operators';
 import { API_ORIGIN } from '../core/api.config';
 import { AuthService } from '../core/services/auth.service';
 import { NotificationService } from '../core/services/notification.service';
+import { PlatformService } from '../core/services/platform.service';
 import { ConfirmDialog } from '../core/components/confirm-dialog';
+import { MobileTabBar } from './mobile-tab-bar/mobile-tab-bar';
+import { PushNotificationService } from '../core/services/push-notification.service';
 
 interface GlassPos { x: number; y: number; w: number; h: number; }
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmDialog],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ConfirmDialog, MobileTabBar],
   template: `
-    <div class="shell">
-      <aside class="sidebar">
-        <div class="brand">◆ MeUp</div>
-        <nav #navRef (mouseover)="onHover($event)" (mouseleave)="snapActive()">
-          <!-- Viên kính trượt theo mục chọn/hover (Liquid Glass, kiểu iOS 26) -->
-          <span class="nav-glass" [class.show]="show()"
-                [style.transform]="'translate(' + pos().x + 'px,' + pos().y + 'px)'"
-                [style.width.px]="pos().w" [style.height.px]="pos().h"></span>
-          <a routerLink="/app/today" routerLinkActive="active">▣ Hôm nay</a>
-          <a routerLink="/app/finance" routerLinkActive="active">💰 Tài chính</a>
-          <a routerLink="/app/health" routerLinkActive="active">♥ Sức khỏe</a>
-          <a routerLink="/app/work" routerLinkActive="active">✓ Công việc</a>
-          <a routerLink="/app/calendar" routerLinkActive="active">📅 Lịch trình</a>
-          <a routerLink="/app/journal" routerLinkActive="active">📓 Nhật ký</a>
-          <a routerLink="/app/knowledge" routerLinkActive="active">🧠 Kiến thức</a>
-          <a routerLink="/app/career" routerLinkActive="active">💼 Sự nghiệp</a>
-          <a routerLink="/app/documents" routerLinkActive="active">📁 Tài liệu</a>
-          <a routerLink="/app/stats" routerLinkActive="active">📊 Thống kê</a>
-          <a routerLink="/app/insights" routerLinkActive="active">✨ Gợi ý AI</a>
-          <a routerLink="/app/search" routerLinkActive="active">🔍 Tìm kiếm</a>
-          <a routerLink="/app/notifications" routerLinkActive="active">🔔 Thông báo
-            @if (notify.unread() > 0) { <span class="badge-count">{{ notify.unread() }}</span> }
-          </a>
-          <a routerLink="/app/profile" routerLinkActive="active">👤 Hồ sơ</a>
-          <a routerLink="/app/settings" routerLinkActive="active">🎛 Cài đặt</a>
-          @if (auth.isAdmin()) {
-            <a routerLink="/app/admin" routerLinkActive="active">⚙ Quản trị</a>
-          }
-        </nav>
-        <div class="sidebar-footer">
-          <div class="who">
-            @if (avatarUrl()) {
-              <img class="avatar-sm" [src]="avatarUrl()" alt="Ảnh đại diện" />
-            } @else {
-              <span class="avatar-sm placeholder">{{ initial() }}</span>
+    <div class="shell" [class.mobile]="platform.useMobileLayout()">
+
+      <!-- Sidebar: chỉ hiện trên desktop -->
+      @if (!platform.useMobileLayout()) {
+        <aside class="sidebar">
+          <div class="brand">◆ MeUp</div>
+          <nav #navRef (mouseover)="onHover($event)" (mouseleave)="snapActive()">
+            <!-- Viên kính trượt theo mục chọn/hover (Liquid Glass, kiểu iOS 26) -->
+            <span class="nav-glass" [class.show]="show()"
+                  [style.transform]="'translate(' + pos().x + 'px,' + pos().y + 'px)'"
+                  [style.width.px]="pos().w" [style.height.px]="pos().h"></span>
+            <a routerLink="/app/today" routerLinkActive="active">▣ Hôm nay</a>
+            <a routerLink="/app/finance" routerLinkActive="active">💰 Tài chính</a>
+            <a routerLink="/app/health" routerLinkActive="active">♥ Sức khỏe</a>
+            <a routerLink="/app/work" routerLinkActive="active">✓ Công việc</a>
+            <a routerLink="/app/calendar" routerLinkActive="active">📅 Lịch trình</a>
+            <a routerLink="/app/journal" routerLinkActive="active">📓 Nhật ký</a>
+            <a routerLink="/app/knowledge" routerLinkActive="active">🧠 Kiến thức</a>
+            <a routerLink="/app/career" routerLinkActive="active">💼 Sự nghiệp</a>
+            <a routerLink="/app/documents" routerLinkActive="active">📁 Tài liệu</a>
+            <a routerLink="/app/stats" routerLinkActive="active">📊 Thống kê</a>
+            <a routerLink="/app/insights" routerLinkActive="active">✨ Gợi ý AI</a>
+            <a routerLink="/app/search" routerLinkActive="active">🔍 Tìm kiếm</a>
+            <a routerLink="/app/notifications" routerLinkActive="active">🔔 Thông báo
+              @if (notify.unread() > 0) { <span class="badge-count">{{ notify.unread() }}</span> }
+            </a>
+            <a routerLink="/app/profile" routerLinkActive="active">👤 Hồ sơ</a>
+            <a routerLink="/app/settings" routerLinkActive="active">🎛 Cài đặt</a>
+            @if (auth.isAdmin()) {
+              <a routerLink="/app/admin" routerLinkActive="active">⚙ Quản trị</a>
             }
-            <div class="who-text">
-              <strong>{{ auth.user()?.displayName }}</strong>
-              <span class="muted">{{ auth.user()?.email }}</span>
+          </nav>
+          <div class="sidebar-footer">
+            <div class="who">
+              @if (avatarUrl()) {
+                <img class="avatar-sm" [src]="avatarUrl()" alt="Ảnh đại diện" />
+              } @else {
+                <span class="avatar-sm placeholder">{{ initial() }}</span>
+              }
+              <div class="who-text">
+                <strong>{{ auth.user()?.displayName }}</strong>
+                <span class="muted">{{ auth.user()?.email }}</span>
+              </div>
             </div>
+            <button class="ghost" (click)="logout()">Đăng xuất</button>
           </div>
-          <button class="ghost" (click)="logout()">Đăng xuất</button>
-        </div>
-      </aside>
-      <main class="content">
+        </aside>
+      }
+
+      <!-- Nội dung chính -->
+      <main class="content" [class.mobile-content]="platform.useMobileLayout()">
+        <!-- Mobile header -->
+        @if (platform.useMobileLayout()) {
+          <header class="mobile-header">
+            <span class="brand-mobile">◆ MeUp</span>
+            <div class="mobile-header-right">
+              @if (avatarUrl()) {
+                <img class="avatar-sm" [src]="avatarUrl()" alt="Ảnh đại diện"
+                     routerLink="/app/profile" style="cursor:pointer" />
+              } @else {
+                <span class="avatar-sm placeholder" routerLink="/app/profile" style="cursor:pointer">
+                  {{ initial() }}
+                </span>
+              }
+            </div>
+          </header>
+        }
         <router-outlet />
       </main>
+
+      <!-- Bottom Tab Bar: chỉ hiện trên mobile -->
+      @if (platform.useMobileLayout()) {
+        <app-mobile-tab-bar />
+      }
     </div>
     <app-confirm-dialog />
   `,
@@ -72,11 +102,45 @@ interface GlassPos { x: number; y: number; w: number; h: number; }
       background: #475569; color: #fff; font-weight: 700; }
     .badge-count { background: var(--danger); color: #fff; border-radius: 999px; font-size: .72rem;
       padding: 0 .4rem; margin-left: .25rem; }
+
+    /* Mobile header bar */
+    .mobile-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      height: 52px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      /* Safe area top (notch) */
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    .brand-mobile {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .mobile-header-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Mobile content: padding-bottom để không bị tab bar che */
+    .mobile-content {
+      padding-bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px);
+      min-height: calc(100vh - 52px);
+    }
   `],
 })
 export class Shell implements OnInit, AfterViewInit {
   readonly auth = inject(AuthService);
   readonly notify = inject(NotificationService);
+  readonly platform = inject(PlatformService);
+  private readonly pushSvc = inject(PushNotificationService);
   private readonly router = inject(Router);
 
   private readonly navRef = viewChild<ElementRef<HTMLElement>>('navRef');
@@ -101,6 +165,7 @@ export class Shell implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.notify.refreshUnread();
+    this.pushSvc.initPush();
   }
 
   ngAfterViewInit(): void {
